@@ -1,6 +1,127 @@
+<!doctype html>
+<html lang="en">
 <head>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Michael McNicholas's chronological school project portfolio.">
+  <title>Michael McNicholas — Project Archive</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
 </head>
 <body>
-  <h1>New Portfolio Website Michael McNicholas</h1>
+  <a class="skip-link" href="#project-index">Skip to project index</a>
+
+  <header class="site-heading">
+    <p class="eyebrow">Michael McNicholas</p>
+    <p>Software Engineering · Project Archive</p>
+  </header>
+
+  <main>
+    <section class="library" aria-label="Interactive project bookcase">
+      <div class="room-glow" aria-hidden="true"></div>
+      <div class="desk">
+        <div class="open-book-wrap">
+          <article class="open-book" id="selected-book" aria-live="polite" aria-atomic="true">
+            <div class="book-shadow" aria-hidden="true"></div>
+            <section class="page page-left">
+              <p class="page-kicker" id="selected-type">Welcome</p>
+              <h1 id="selected-title">Michael's Project Archive</h1>
+              <p class="book-date" id="selected-date">2026–2027</p>
+              <span class="page-rule" aria-hidden="true"></span>
+              <p class="book-summary" id="selected-summary">A chronological collection of school projects, with the newest work resting at the top of the stack.</p>
+            </section>
+
+            <section class="page page-right">
+              <div class="page-number" aria-hidden="true">PROJECT RECORD</div>
+              <p class="book-details" id="selected-details">Choose any labeled spine to bring a project forward. Each project book contains its date, purpose, and a direct route to the finished work.</p>
+              <a class="project-link" id="selected-link" href="#project-index" hidden>
+                <span id="selected-link-label">Open finished project</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+              <a class="index-link" href="#project-index">Browse the complete project index ↓</a>
+            </section>
+
+            <div class="book-gutter" aria-hidden="true"></div>
+          </article>
+
+          <nav class="book-nav" aria-label="Move through project books">
+            <button type="button" id="previous-book" aria-label="Select the previous book">← Previous</button>
+            <p id="book-position" aria-live="polite">Book 1 of 3</p>
+            <button type="button" id="next-book" aria-label="Select the next book">Next →</button>
+          </nav>
+        </div>
+
+        <section class="stack-area" aria-labelledby="stack-title">
+          <div class="stack-label">
+            <p>PROJECTS</p>
+            <h2 id="stack-title">The school-year stack</h2>
+            <span>Info first · then newest to oldest</span>
+          </div>
+          <div class="book-stack" id="book-stack" role="group" aria-label="Select a book by its spine"></div>
+          <p class="stack-instruction" id="stack-instruction">Select a spine · Use arrow keys to move</p>
+        </section>
+
+        <div class="desk-edge" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!--
+      PROJECT CONTENT LIVES HERE.
+      Keep the information book first. Put projects below it in NEWEST-TO-OLDEST order.
+      Copy one project article to add another. See ADDING_PROJECTS.md for the short guide.
+      JavaScript reads these articles to create the desktop book stack; this same content is
+      the mobile layout and remains usable if JavaScript is unavailable.
+    -->
+    <section class="project-index" id="project-index" aria-labelledby="index-title">
+      <header class="index-heading">
+        <p class="eyebrow">Complete archive</p>
+        <h2 id="index-title">The archive, newest projects first</h2>
+        <p>Every project can be opened directly here. On larger screens, the same entries also appear as books in the stack.</p>
+      </header>
+
+      <div class="project-list" id="project-list">
+        <article class="project-card info-card"
+          data-kind="info"
+          data-color="#795548"
+          data-accent="#d8b77a">
+          <p class="card-type">About this archive</p>
+          <h3>Michael's Project Archive</h3>
+          <time datetime="2026">2026–2027</time>
+          <p class="card-summary">A chronological collection of school projects, with the newest work resting at the top of the stack.</p>
+          <p class="card-details">Choose any labeled spine to bring a project forward. Each project book contains its date, purpose, and a direct route to the finished work.</p>
+        </article>
+
+        <article class="project-card"
+          data-kind="project"
+          data-color="#365f68"
+          data-accent="#9fc4bd">
+          <p class="card-type">Sample project · Replace me</p>
+          <h3>Interactive Story</h3>
+          <time datetime="2026-10-14">October 14, 2026</time>
+          <p class="card-summary">Build a branching browser story that makes each choice understandable and consequential.</p>
+          <p class="card-details">This sample demonstrates how a completed project will appear. Replace its text and destination when your first project is ready.</p>
+          <a href="https://example.com" target="_blank" rel="noopener">Sample link — replace with finished project</a>
+        </article>
+
+        <article class="project-card"
+          data-kind="project"
+          data-color="#7b3f45"
+          data-accent="#d8a89b">
+          <p class="card-type">Sample project · Replace me</p>
+          <h3>Data Portrait</h3>
+          <time datetime="2026-09-02">September 2, 2026</time>
+          <p class="card-summary">Turn a small personal dataset into a clear visual explanation for a general audience.</p>
+          <p class="card-details">This second sample shows the oldest project at the bottom of the physical stack and the end of the chronological list.</p>
+          <a href="https://example.com" target="_blank" rel="noopener">Sample link — replace with finished project</a>
+        </article>
+      </div>
+
+      <a class="return-link" href="#selected-book">Return to the book stack ↑</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>Designed and built by Michael McNicholas.</p>
+  </footer>
 </body>
+</html>
