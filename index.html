@@ -7,6 +7,7 @@
   <title>Michael McNicholas — Project Archive</title>
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
+  <script type="module" src="full3d.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#project-index">Skip to project index</a>
@@ -19,6 +20,16 @@
   <main>
     <section class="library" aria-label="Interactive project bookcase">
       <div class="room-glow" aria-hidden="true"></div>
+      <div class="webgl-stage" id="webgl-stage" aria-hidden="true"></div>
+      <div class="webgl-ui" id="webgl-ui" hidden>
+        <nav class="webgl-book-nav" aria-label="Move through project books">
+          <button type="button" id="webgl-previous" aria-label="Select the previous book">←</button>
+          <p id="webgl-position" aria-live="polite">Book 1 of 3</p>
+          <button type="button" id="webgl-next" aria-label="Select the next book">→</button>
+        </nav>
+        <a class="webgl-project-link" id="webgl-project-link" href="#project-index" hidden>Open finished project ↗</a>
+        <a class="webgl-index-link" href="#project-index">Project index ↓</a>
+      </div>
       <div class="desk">
         <div class="open-book-wrap">
           <article class="open-book" id="selected-book" aria-live="polite" aria-atomic="true">

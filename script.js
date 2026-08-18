@@ -109,6 +109,10 @@
       void openBook.offsetWidth;
       openBook.classList.add("is-settling");
     }
+
+    document.dispatchEvent(new CustomEvent("portfolio:select", {
+      detail: { index: currentIndex, book }
+    }));
   }
 
   function handleSpineKeys(event) {
@@ -128,6 +132,9 @@
 
   previousButton.addEventListener("click", () => selectBook(currentIndex - 1, { focusSpine: true }));
   nextButton.addEventListener("click", () => selectBook(currentIndex + 1, { focusSpine: true }));
+  document.addEventListener("portfolio:request-select", (event) => {
+    selectBook(Number(event.detail.index));
+  });
 
   if (library && !reducedMotion.matches && window.matchMedia("(pointer: fine)").matches) {
     let pointerFrame = 0;
