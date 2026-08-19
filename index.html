@@ -3,131 +3,162 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Michael McNicholas's chronological school project portfolio.">
+  <meta name="description" content="Michael McNicholas's chronological software-engineering project portfolio.">
   <title>Michael McNicholas — Project Archive</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2210%22 fill=%22%2371483a%22/><path d=%22M13 15h17c5 0 8 3 8 8v27c-2-3-5-4-9-4H13zm38 0H34c-5 0-8 3-8 8v27c2-3 5-4 9-4h16z%22 fill=%22%23eadbb8%22/></svg>">
   <link rel="stylesheet" href="styles.css">
-  <script src="script.js" defer></script>
-  <script type="module" src="full3d.js"></script>
+  <script type="module" src="script.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#project-index">Skip to project index</a>
-
-  <header class="site-heading">
-    <p class="eyebrow">Michael McNicholas</p>
-    <p>Software Engineering · Project Archive</p>
-  </header>
+  <a class="skip-link" href="#archive">Skip to the complete project archive</a>
 
   <main>
-    <section class="library" aria-label="Interactive project bookcase">
-      <div class="room-glow" aria-hidden="true"></div>
-      <div class="webgl-stage" id="webgl-stage" aria-hidden="true"></div>
-      <div class="webgl-ui" id="webgl-ui" hidden>
-        <nav class="webgl-book-nav" aria-label="Move through project books">
-          <button type="button" id="webgl-previous" aria-label="Select the previous book">←</button>
-          <p id="webgl-position" aria-live="polite">Book 1 of 3</p>
-          <button type="button" id="webgl-next" aria-label="Select the next book">→</button>
-        </nav>
-        <a class="webgl-project-link" id="webgl-project-link" href="#project-index" hidden>Open finished project ↗</a>
-        <a class="webgl-index-link" href="#project-index">Project index ↓</a>
-      </div>
-      <div class="desk">
-        <div class="open-book-wrap">
-          <article class="open-book" id="selected-book" aria-live="polite" aria-atomic="true">
-            <div class="book-shadow" aria-hidden="true"></div>
-            <section class="page page-left">
-              <p class="page-kicker" id="selected-type">Welcome</p>
-              <h1 id="selected-title">Michael's Project Archive</h1>
-              <p class="book-date" id="selected-date">2026–2027</p>
-              <span class="page-rule" aria-hidden="true"></span>
-              <p class="book-summary" id="selected-summary">A chronological collection of school projects, with the newest work resting at the top of the stack.</p>
-            </section>
+    <section class="study" id="study" aria-label="Michael McNicholas's project study">
+      <div class="scene-canvas" id="scene-canvas" aria-hidden="true"></div>
 
-            <section class="page page-right">
-              <div class="page-number" aria-hidden="true">PROJECT RECORD</div>
-              <p class="book-details" id="selected-details">Choose any labeled spine to bring a project forward. Each project book contains its date, purpose, and a direct route to the finished work.</p>
-              <a class="project-link" id="selected-link" href="#project-index" hidden>
-                <span id="selected-link-label">Open finished project</span>
-                <span aria-hidden="true">↗</span>
-              </a>
-              <a class="index-link" href="#project-index">Browse the complete project index ↓</a>
-            </section>
+      <header class="study-plaque">
+        <p>Michael McNicholas</p>
+        <h1>Project Archive</h1>
+        <span>Software Engineering · 2025–2026</span>
+      </header>
 
-            <div class="book-gutter" aria-hidden="true"></div>
-          </article>
-
-          <nav class="book-nav" aria-label="Move through project books">
-            <button type="button" id="previous-book" aria-label="Select the previous book">← Previous</button>
-            <p id="book-position" aria-live="polite">Book 1 of 3</p>
-            <button type="button" id="next-book" aria-label="Select the next book">Next →</button>
-          </nav>
-        </div>
-
-        <section class="stack-area" aria-labelledby="stack-title">
-          <div class="stack-label">
-            <p>PROJECTS</p>
-            <h2 id="stack-title">The school-year stack</h2>
-            <span>Info first · then newest to oldest</span>
-          </div>
-          <div class="book-stack" id="book-stack" role="group" aria-label="Select a book by its spine"></div>
-          <p class="stack-instruction" id="stack-instruction">Select a spine · Use arrow keys to move</p>
+      <article class="reading-book" id="reading-book" aria-labelledby="selected-title">
+        <section class="reading-page reading-page-left">
+          <p class="page-kicker" id="selected-type">About this archive</p>
+          <h2 id="selected-title">Michael’s Project Archive</h2>
+          <p class="selected-date" id="selected-date">2025–2026</p>
+          <span class="page-flourish" aria-hidden="true">◆</span>
+          <p class="selected-summary" id="selected-summary">A chronological collection of Michael McNicholas’s software-engineering projects.</p>
         </section>
 
-        <div class="desk-edge" aria-hidden="true"></div>
-      </div>
+        <section class="reading-page reading-page-right">
+          <p class="page-kicker">Reader’s note</p>
+          <p class="selected-details" id="selected-details">Choose a labeled volume from the stack to read its project record and open the finished example.</p>
+
+          <a class="destination-card" id="selected-link" href="#archive" hidden>
+            <span>Finished work</span>
+            <strong id="selected-link-label">Open project</strong>
+            <small>Open ↗</small>
+          </a>
+
+          <a class="catalogue-card" id="show-archive" href="#archive">
+            <span>Archive card · No. 01</span>
+            <strong>Browse the simple archive</strong>
+            <small>All project records ↓</small>
+          </a>
+        </section>
+      </article>
+
+      <section class="volume-selector" aria-labelledby="volume-heading">
+        <header class="shelf-label">
+          <h2 id="volume-heading">Project volumes</h2>
+          <p>Choose a labeled spine</p>
+        </header>
+        <div class="spine-controls" id="spine-controls" role="toolbar" aria-label="Project volumes, newest at the top"></div>
+      </section>
+
+      <div class="selection-status visually-hidden" id="selection-status" role="status" aria-live="polite"></div>
     </section>
 
     <!--
-      PROJECT CONTENT LIVES HERE.
-      Keep the information book first. Put projects below it in NEWEST-TO-OLDEST order.
-      Copy one project article to add another. See ADDING_PROJECTS.md for the short guide.
-      JavaScript reads these articles to create the desktop book stack; this same content is
-      the mobile layout and remains usable if JavaScript is unavailable.
+      SINGLE SOURCE OF PORTFOLIO CONTENT
+      The information record stays first. Project records follow newest to oldest.
+      The desktop scene, selected book, mobile layout, and no-JavaScript archive all
+      derive from these semantic articles. See ADDING_PROJECTS.md.
     -->
-    <section class="project-index" id="project-index" aria-labelledby="index-title">
-      <header class="index-heading">
-        <p class="eyebrow">Complete archive</p>
-        <h2 id="index-title">The archive, newest projects first</h2>
-        <p>Every project can be opened directly here. On larger screens, the same entries also appear as books in the stack.</p>
+    <section class="archive" id="archive" aria-labelledby="archive-title">
+      <header class="archive-heading">
+        <p class="archive-eyebrow">Michael McNicholas · Software Engineering</p>
+        <h1 id="archive-title">Project card catalogue</h1>
+        <p>A chronological record of classroom examples, newest first. Each card includes the project date, purpose, and a direct destination.</p>
       </header>
 
-      <div class="project-list" id="project-list">
-        <article class="project-card info-card"
+      <div class="project-records" id="project-records">
+        <article class="project-record information-record"
           data-kind="info"
-          data-color="#795548"
-          data-accent="#d8b77a">
-          <p class="card-type">About this archive</p>
-          <h3>Michael's Project Archive</h3>
-          <time datetime="2026">2026–2027</time>
-          <p class="card-summary">A chronological collection of school projects, with the newest work resting at the top of the stack.</p>
-          <p class="card-details">Choose any labeled spine to bring a project forward. Each project book contains its date, purpose, and a direct route to the finished work.</p>
+          data-color="#71483a"
+          data-accent="#d8b968">
+          <p class="record-type">About this archive</p>
+          <h2>Michael’s Project Archive</h2>
+          <time datetime="2025">2025–2026</time>
+          <p class="record-summary">A chronological collection of Michael McNicholas’s software-engineering projects.</p>
+          <p class="record-details">Choose a labeled volume from the stack to read its project record and open the finished example.</p>
         </article>
 
-        <article class="project-card"
+        <article class="project-record"
           data-kind="project"
-          data-color="#365f68"
-          data-accent="#9fc4bd">
-          <p class="card-type">Sample project · Replace me</p>
-          <h3>Interactive Story</h3>
-          <time datetime="2026-10-14">October 14, 2026</time>
-          <p class="card-summary">Build a branching browser story that makes each choice understandable and consequential.</p>
-          <p class="card-details">This sample demonstrates how a completed project will appear. Replace its text and destination when your first project is ready.</p>
-          <a href="https://example.com" target="_blank" rel="noopener">Sample link — replace with finished project</a>
+          data-color="#355c51"
+          data-accent="#e5cc83">
+          <p class="record-type">Example project · Creative coding</p>
+          <h2>Algorithmic Garden</h2>
+          <time datetime="2026-05-28">May 28, 2026</time>
+          <p class="record-summary">Generate a changing garden from simple rules while keeping the controls understandable.</p>
+          <p class="record-details">A procedural canvas study exploring seeded randomness, reusable plant forms, and clear parameter controls.</p>
+          <a href="examples/index.html#algorithmic-garden">Open Algorithmic Garden</a>
         </article>
 
-        <article class="project-card"
+        <article class="project-record"
           data-kind="project"
-          data-color="#7b3f45"
-          data-accent="#d8a89b">
-          <p class="card-type">Sample project · Replace me</p>
-          <h3>Data Portrait</h3>
-          <time datetime="2026-09-02">September 2, 2026</time>
-          <p class="card-summary">Turn a small personal dataset into a clear visual explanation for a general audience.</p>
-          <p class="card-details">This second sample shows the oldest project at the bottom of the physical stack and the end of the chronological list.</p>
-          <a href="https://example.com" target="_blank" rel="noopener">Sample link — replace with finished project</a>
+          data-color="#3f526d"
+          data-accent="#d9c489">
+          <p class="record-type">Example project · Algorithms</p>
+          <h2>Pathfinding Visualizer</h2>
+          <time datetime="2026-04-16">April 16, 2026</time>
+          <p class="record-summary">Make breadth-first search visible so a learner can follow how a shortest path is discovered.</p>
+          <p class="record-details">A grid-based explainer comparing visited cells, frontier growth, blocked routes, and the final path.</p>
+          <a href="examples/index.html#pathfinding-visualizer">Open Pathfinding Visualizer</a>
+        </article>
+
+        <article class="project-record"
+          data-kind="project"
+          data-color="#75434a"
+          data-accent="#e8c5a0">
+          <p class="record-type">Example project · Data visualization</p>
+          <h2>Climate Data Portrait</h2>
+          <time datetime="2026-03-12">March 12, 2026</time>
+          <p class="record-summary">Turn a small climate dataset into a concise visual explanation for a general audience.</p>
+          <p class="record-details">A responsive chart study that emphasizes comparison, readable labels, and responsible contextual notes.</p>
+          <a href="examples/index.html#climate-data-portrait">Open Climate Data Portrait</a>
+        </article>
+
+        <article class="project-record"
+          data-kind="project"
+          data-color="#644b76"
+          data-accent="#dbc5e7">
+          <p class="record-type">Example project · Interactive narrative</p>
+          <h2>Interactive Story</h2>
+          <time datetime="2026-02-20">February 20, 2026</time>
+          <p class="record-summary">Build a branching browser story in which every choice is understandable and consequential.</p>
+          <p class="record-details">A compact narrative prototype with explicit choices, reversible progress, and keyboard-friendly interaction.</p>
+          <a href="examples/index.html#interactive-story">Open Interactive Story</a>
+        </article>
+
+        <article class="project-record"
+          data-kind="project"
+          data-color="#6d5835"
+          data-accent="#ead49a">
+          <p class="record-type">Example project · Accessible UI</p>
+          <h2>Accessible Quiz</h2>
+          <time datetime="2026-01-23">January 23, 2026</time>
+          <p class="record-summary">Design a short knowledge check that works clearly with a mouse, keyboard, or screen reader.</p>
+          <p class="record-details">A semantic form exercise focused on useful feedback, visible focus, touch sizing, and robust color contrast.</p>
+          <a href="examples/index.html#accessible-quiz">Open Accessible Quiz</a>
+        </article>
+
+        <article class="project-record"
+          data-kind="project"
+          data-color="#315765"
+          data-accent="#b8d7d5">
+          <p class="record-type">Example project · Web foundations</p>
+          <h2>Personal Landing Page</h2>
+          <time datetime="2025-12-12">December 12, 2025</time>
+          <p class="record-summary">Create a responsive introduction that communicates identity, interests, and contact routes quickly.</p>
+          <p class="record-details">A foundations project using semantic landmarks, flexible layout, careful typography, and progressive enhancement.</p>
+          <a href="examples/index.html#personal-landing-page">Open Personal Landing Page</a>
         </article>
       </div>
 
-      <a class="return-link" href="#selected-book">Return to the book stack ↑</a>
+      <a class="return-to-study" id="return-to-study" href="#study" hidden>Return to the reading desk ↑</a>
     </section>
   </main>
 

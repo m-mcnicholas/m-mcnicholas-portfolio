@@ -1,171 +1,213 @@
-(function () {
-  "use strict";
+import { createStudyScene } from "./scene.js";
 
-  const cards = Array.from(document.querySelectorAll(".project-card"));
-  const stack = document.querySelector("#book-stack");
+const desktopQuery = window.matchMedia("(min-width: 1100px) and (min-height: 650px)");
+const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (!cards.length || !stack) return;
-
-  const selected = {
-    type: document.querySelector("#selected-type"),
-    title: document.querySelector("#selected-title"),
-    date: document.querySelector("#selected-date"),
-    summary: document.querySelector("#selected-summary"),
-    details: document.querySelector("#selected-details"),
-    link: document.querySelector("#selected-link"),
-    linkLabel: document.querySelector("#selected-link-label")
-  };
-  const previousButton = document.querySelector("#previous-book");
-  const nextButton = document.querySelector("#next-book");
-  const position = document.querySelector("#book-position");
-  const openBook = document.querySelector("#selected-book");
-  const library = document.querySelector(".library");
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-  const books = cards.map((card, index) => {
-    const sourceLink = card.querySelector(":scope > a");
-    const book = {
-      kind: card.dataset.kind,
-      color: card.dataset.color,
-      accent: card.dataset.accent,
-      type: card.querySelector(".card-type").textContent.trim(),
-      title: card.querySelector("h3").textContent.trim(),
-      date: card.querySelector("time").textContent.trim(),
-      summary: card.querySelector(".card-summary").textContent.trim(),
-      details: card.querySelector(".card-details").textContent.trim(),
-      href: sourceLink ? sourceLink.href : "",
-      linkText: sourceLink ? sourceLink.textContent.trim() : "",
-      target: sourceLink ? sourceLink.target : ""
+function readRecords() {
+  return Array.from(document.querySelectorAll(".project-record")).map((element) => {
+    const link = element.querySelector(":scope > a");
+    return {
+      element,
+      kind: element.dataset.kind || "project",
+      color: element.dataset.color || "#71483a",
+      accent: element.dataset.accent || "#d8b968",
+      type: element.querySelector(".record-type")?.textContent.trim() || "Project",
+      title: element.querySelector("h2")?.textContent.trim() || "Untitled project",
+      date: element.querySelector("time")?.textContent.trim() || "Undated",
+      summary: element.querySelector(".record-summary")?.textContent.trim() || "",
+      details: element.querySelector(".record-details")?.textContent.trim() || "",
+      href: link?.getAttribute("href") || "",
+      linkText: link?.textContent.trim() || "Open project"
     };
-
-    card.style.setProperty("--card-color", book.color);
-
-    const spine = document.createElement("button");
-    const level = cards.length - index - 1;
-    const offsets = [4, 22, 0, 13, 31, 8, 25, 3, 18, 10, 28];
-    const tilts = ["-0.25deg", "0.45deg", "-0.35deg", "0.2deg"];
-    spine.type = "button";
-    spine.className = "spine";
-    spine.dataset.bookIndex = String(index);
-    spine.setAttribute("aria-pressed", String(index === 0));
-    spine.setAttribute("aria-label", `Select ${book.title}, ${book.date}`);
-    spine.style.setProperty("--level", String(level));
-    spine.style.setProperty("--depth", `${(level * 0.7).toFixed(1)}px`);
-    spine.style.setProperty("--offset", `${offsets[index % offsets.length]}px`);
-    spine.style.setProperty("--tilt", tilts[index % tilts.length]);
-    spine.style.setProperty("--book-color", book.color);
-    spine.style.setProperty("--book-accent", book.accent);
-    spine.innerHTML = `<span class="spine-title"></span><span class="spine-date"></span>`;
-    spine.querySelector(".spine-title").textContent = book.title;
-    spine.querySelector(".spine-date").textContent = book.date;
-    spine.addEventListener("click", () => selectBook(index));
-    spine.addEventListener("keydown", handleSpineKeys);
-    stack.appendChild(spine);
-
-    return { ...book, spine };
   });
+}
 
-  let currentIndex = 0;
+function createSpineControls(records) {
+  const container = document.querySelector("#spine-controls");
+  if (!container) return [];
 
-  function selectBook(index, options = {}) {
-    currentIndex = Math.max(0, Math.min(books.length - 1, index));
-    const book = books[currentIndex];
+  return records.map((record, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "spine-control";
+    button.dataset.recordIndex = String(index);
+    button.setAttribute("aria-pressed", String(index === 0));
+    button.setAttribute("aria-controls", "reading-book");
+    button.setAttribute("aria-label", `Read ${record.title}, ${record.date}`);
+    button.style.setProperty("--cloth", record.color);
+    button.style.setProperty("--gilt", record.accent);
+    button.innerHTML = `<span class="spine-title"></span><span class="spine-date"></span>`;
+    button.querySelector(".spine-title").textContent = record.title;
+    button.querySelector(".spine-date").textContent = record.kind === "info" ? "Archive guide" : record.date;
+    container.append(button);
+    return button;
+  });
+}
 
-    books.forEach((item, itemIndex) => {
-      item.spine.setAttribute("aria-pressed", String(itemIndex === currentIndex));
+async function initializeDesktopStudy() {
+  if (!desktopQuery.matches || document.documentElement.dataset.webglAttempted === "true") return;
+  document.documentElement.dataset.webglAttempted = "true";
+
+  const records = readRecords();
+  if (records.length < 2 || records.some((record) => !record.title || !record.date || !record.summary)) return;
+
+  // Give the renderer a full-size but invisible stage so textures and projected
+  // semantic controls settle before the fallback is replaced on screen.
+  document.documentElement.classList.add("webgl-preparing");
+  const spineControls = createSpineControls(records);
+  const readingBook = document.querySelector("#reading-book");
+  if (!readingBook || spineControls.length !== records.length) return;
+
+  try {
+    const scene = createStudyScene(records, ({ book, spines }) => {
+      readingBook.style.setProperty("--book-left", `${book.left}px`);
+      readingBook.style.setProperty("--book-top", `${book.top}px`);
+      readingBook.style.setProperty("--book-width", `${book.width}px`);
+      readingBook.style.setProperty("--book-height", `${book.height}px`);
+
+      spineControls.forEach((button, index) => {
+        const bounds = spines[index];
+        button.style.left = `${bounds.left}px`;
+        button.style.top = `${bounds.top}px`;
+        button.style.width = `${bounds.width}px`;
+        button.style.height = `${bounds.height}px`;
+      });
     });
 
-    selected.type.textContent = book.kind === "info" ? "Welcome" : book.type;
-    selected.title.textContent = book.title;
-    selected.date.textContent = book.date;
-    selected.summary.textContent = book.summary;
-    selected.details.textContent = book.details;
+    window.__portfolioScene = scene;
+    scene.resize();
+    document.documentElement.classList.remove("webgl-preparing");
+    document.documentElement.classList.add("webgl-revealing");
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    document.documentElement.classList.add("webgl-ready");
+    document.documentElement.dataset.mode = "study";
+    document.documentElement.classList.remove("webgl-revealing");
+    // The stage is hidden until initialization succeeds, so project the DOM
+    // overlays only after the enhanced layout has acquired real dimensions.
+    scene.resize();
 
-    if (book.href) {
-      selected.link.hidden = false;
-      selected.link.href = book.href;
-      selected.link.target = book.target;
-      selected.link.rel = book.target === "_blank" ? "noopener" : "";
-      selected.linkLabel.textContent = book.linkText;
-    } else {
-      selected.link.hidden = true;
-      selected.link.removeAttribute("href");
-      selected.link.removeAttribute("target");
-      selected.link.removeAttribute("rel");
+    const fields = {
+      type: document.querySelector("#selected-type"),
+      title: document.querySelector("#selected-title"),
+      date: document.querySelector("#selected-date"),
+      summary: document.querySelector("#selected-summary"),
+      details: document.querySelector("#selected-details"),
+      link: document.querySelector("#selected-link"),
+      linkLabel: document.querySelector("#selected-link-label"),
+      status: document.querySelector("#selection-status")
+    };
+    const showArchive = document.querySelector("#show-archive");
+    const returnToStudy = document.querySelector("#return-to-study");
+    let selectedIndex = 0;
+
+    rendererCanvas().addEventListener("webglcontextlost", handleContextLoss, { once: true });
+
+    function rendererCanvas() {
+      const canvas = document.querySelector("#scene-canvas canvas");
+      if (!canvas) throw new Error("The initialized renderer canvas is missing.");
+      return canvas;
     }
 
-    position.textContent = `Book ${currentIndex + 1} of ${books.length}`;
-    previousButton.disabled = currentIndex === 0;
-    nextButton.disabled = currentIndex === books.length - 1;
-    document.title = currentIndex === 0
-      ? "Michael McNicholas — Project Archive"
-      : `${book.title} — Michael McNicholas`;
-
-    if (options.focusSpine) book.spine.focus();
-    openBook.dataset.selectedIndex = String(currentIndex);
-
-    if (!reducedMotion.matches && options.animate !== false) {
-      openBook.classList.remove("is-settling");
-      void openBook.offsetWidth;
-      openBook.classList.add("is-settling");
-    }
-
-    document.dispatchEvent(new CustomEvent("portfolio:select", {
-      detail: { index: currentIndex, book }
-    }));
-  }
-
-  function handleSpineKeys(event) {
-    const index = Number(event.currentTarget.dataset.bookIndex);
-    let destination = null;
-
-    if (event.key === "ArrowDown" || event.key === "ArrowRight") destination = index + 1;
-    if (event.key === "ArrowUp" || event.key === "ArrowLeft") destination = index - 1;
-    if (event.key === "Home") destination = 0;
-    if (event.key === "End") destination = books.length - 1;
-
-    if (destination !== null) {
+    function handleContextLoss(event) {
       event.preventDefault();
-      selectBook(destination, { focusSpine: true });
-    }
-  }
-
-  previousButton.addEventListener("click", () => selectBook(currentIndex - 1, { focusSpine: true }));
-  nextButton.addEventListener("click", () => selectBook(currentIndex + 1, { focusSpine: true }));
-  document.addEventListener("portfolio:request-select", (event) => {
-    selectBook(Number(event.detail.index));
-  });
-
-  if (library && !reducedMotion.matches && window.matchMedia("(pointer: fine)").matches) {
-    let pointerFrame = 0;
-    let pointerX = 0.5;
-    let pointerY = 0.5;
-
-    function renderPointerDepth() {
-      const rotateX = 5 + (pointerY - 0.5) * -2.2;
-      const rotateY = (pointerX - 0.5) * 3.2;
-      library.style.setProperty("--scene-rotate-x", `${rotateX.toFixed(2)}deg`);
-      library.style.setProperty("--scene-rotate-y", `${rotateY.toFixed(2)}deg`);
-      library.style.setProperty("--light-x", `${42 + pointerX * 12}%`);
-      library.style.setProperty("--light-y", `${16 + pointerY * 10}%`);
-      library.style.setProperty("--glow-x", `${(pointerX - 0.5) * 26}px`);
-      library.style.setProperty("--glow-y", `${(pointerY - 0.5) * 14}px`);
-      pointerFrame = 0;
+      readingBook.getAnimations().forEach((animation) => animation.cancel());
+      scene.dispose();
+      window.__portfolioScene = null;
+      spineControls.forEach((button) => button.remove());
+      document.documentElement.classList.remove("webgl-ready");
+      document.documentElement.dataset.mode = "archive";
+      returnToStudy.hidden = true;
+      console.warn("The WebGL context was lost; switched to the semantic archive.");
     }
 
-    library.addEventListener("pointermove", (event) => {
-      const bounds = library.getBoundingClientRect();
-      pointerX = (event.clientX - bounds.left) / bounds.width;
-      pointerY = (event.clientY - bounds.top) / bounds.height;
-      if (!pointerFrame) pointerFrame = window.requestAnimationFrame(renderPointerDepth);
-    }, { passive: true });
+    function selectRecord(requestedIndex, options = {}) {
+      const index = Math.max(0, Math.min(records.length - 1, requestedIndex));
+      const record = records[index];
+      selectedIndex = index;
 
-    library.addEventListener("pointerleave", () => {
-      pointerX = 0.5;
-      pointerY = 0.5;
-      if (!pointerFrame) pointerFrame = window.requestAnimationFrame(renderPointerDepth);
+      spineControls.forEach((button, buttonIndex) => {
+        button.setAttribute("aria-pressed", String(buttonIndex === index));
+      });
+
+      fields.type.textContent = record.type;
+      fields.title.textContent = record.title;
+      fields.date.textContent = record.date;
+      fields.summary.textContent = record.summary;
+      fields.details.textContent = record.details;
+
+      if (record.href) {
+        fields.link.hidden = false;
+        fields.link.href = record.href;
+        fields.linkLabel.textContent = record.linkText;
+      } else {
+        fields.link.hidden = true;
+        fields.link.removeAttribute("href");
+      }
+
+      scene.setSelected(index, { animate: options.animate !== false && !reducedMotionQuery.matches });
+      readingBook.getAnimations().forEach((animation) => animation.cancel());
+      if (options.animate !== false && !reducedMotionQuery.matches) {
+        readingBook.animate(
+          [
+            { opacity: 0.78, transform: "translateY(5px) scale(0.992)" },
+            { opacity: 1, transform: "translateY(0) scale(1)" }
+          ],
+          { duration: 180, easing: "cubic-bezier(.2,.72,.25,1)" }
+        );
+      }
+      document.title = index === 0
+        ? "Michael McNicholas — Project Archive"
+        : `${record.title} — Michael McNicholas`;
+
+      if (options.focus) spineControls[index].focus();
+      if (options.announce !== false) fields.status.textContent = `Now reading ${record.title}, ${record.date}.`;
+    }
+
+    function handleSpineKeydown(event) {
+      const index = Number(event.currentTarget.dataset.recordIndex);
+      let destination;
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") destination = index + 1;
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") destination = index - 1;
+      if (event.key === "Home") destination = 0;
+      if (event.key === "End") destination = records.length - 1;
+      if (destination === undefined) return;
+      event.preventDefault();
+      selectRecord(destination, { focus: true });
+    }
+
+    spineControls.forEach((button, index) => {
+      button.addEventListener("click", () => selectRecord(index));
+      button.addEventListener("keydown", handleSpineKeydown);
     });
-  }
 
-  selectBook(0, { animate: false });
-})();
+    showArchive.addEventListener("click", () => {
+      document.documentElement.dataset.mode = "archive";
+      returnToStudy.hidden = false;
+    });
+
+    returnToStudy.addEventListener("click", (event) => {
+      if (!desktopQuery.matches) return;
+      event.preventDefault();
+      document.documentElement.dataset.mode = "study";
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#study`);
+      scene.resize();
+      showArchive.focus();
+    });
+
+    if (window.location.hash === "#archive") {
+      document.documentElement.dataset.mode = "archive";
+      returnToStudy.hidden = false;
+    }
+
+    selectRecord(0, { announce: false, animate: false });
+  } catch (error) {
+    console.warn("The 3D study could not initialize; the semantic archive remains available.", error);
+    document.documentElement.classList.remove("webgl-preparing", "webgl-revealing");
+    document.querySelector("#spine-controls")?.replaceChildren();
+  }
+}
+
+initializeDesktopStudy();
+desktopQuery.addEventListener("change", (event) => {
+  if (event.matches) initializeDesktopStudy();
+});

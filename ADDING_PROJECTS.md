@@ -1,58 +1,73 @@
 # Adding a project
 
-Projects are stored directly in `index.html`. There is no framework, build command, or second data file to keep in sync.
+Project content is stored once: as a semantic `<article class="project-record">` inside `#project-records` in `index.html`. Do not add a second JavaScript or mobile data list.
 
-## The five-minute workflow
+## Normal workflow
 
-1. Open `index.html` and find `id="project-list"`.
-2. Copy the sample `<article class="project-card">...</article>` block.
-3. Paste it immediately after the information-book article so the newest project stays on top.
-4. Replace the title, machine-readable and visible date, summary, details, and link.
-5. Choose a dark `data-color` for the book cloth and a lighter `data-accent` for its lettering.
-6. Open `index.html` in a browser and check the spine, open book, project index, and destination link.
+1. Open `index.html` and locate `id="project-records"`.
+2. Copy one project record, not the first `information-record`.
+3. Paste the copy after the information record and among the projects in newest-to-oldest order.
+4. Replace every field described below.
+5. Add the finished work to the repository or use its deployed URL.
+6. Run `npm run build` and `npm run test:e2e`.
+7. Inspect the new spine, selected book, archive card, phone layout, and destination.
 
-The stack positions every book automatically. Never add pixel positions for an individual project.
+No existing book position or coordinate should be edited. `scene.js` recalculates every stack level from record count and order.
 
-## Copyable project template
+## Copyable record
 
 ```html
-<article class="project-card"
+<article class="project-record"
   data-kind="project"
-  data-color="#365f68"
-  data-accent="#9fc4bd">
-  <p class="card-type">School project</p>
-  <h3>Project title</h3>
-  <time datetime="2026-11-06">November 6, 2026</time>
-  <p class="card-summary">One sentence explaining the project's goal.</p>
-  <p class="card-details">Optional context, reflection, or process note. Keep this concise.</p>
-  <a href="https://your-project-url.example" target="_blank" rel="noopener">Open finished project</a>
+  data-color="#355c51"
+  data-accent="#e5cc83">
+  <p class="record-type">School project · Category</p>
+  <h2>Project title</h2>
+  <time datetime="2026-06-01">June 1, 2026</time>
+  <p class="record-summary">One sentence explaining the project goal.</p>
+  <p class="record-details">A concise process note, result, or reflection.</p>
+  <a href="projects/project-name/index.html">Open Project title</a>
 </article>
 ```
 
-## What each field controls
+## Supported fields
 
-| Field | Where it appears |
-| --- | --- |
-| `data-color` | Book cloth, and the colored edge in the project index |
-| `data-accent` | Spine rules and spine date |
-| `.card-type` | Small label on the open book and index |
-| `<h3>` | Spine, open-book title, and index title |
-| `<time>` | Spine, open-book date, and index date |
-| `.card-summary` | Main project goal on the left page and index |
-| `.card-details` | Supporting note on the right page and mobile card |
-| `<a href>` | Direct destination for the finished work |
+| Field | Required | Used by |
+| --- | --- | --- |
+| `data-kind="project"` | Yes | Distinguishes projects from the initial information volume |
+| `data-color` | Yes | Procedural cloth texture and archive-card edge |
+| `data-accent` | Yes | Spine rules and dates; use a light color with strong contrast |
+| `.record-type` | Yes | Open-page classification and archive card |
+| `<h2>` | Yes | Spine, selected page, archive, accessible name, and browser title |
+| `<time datetime>` | Yes | Visible spine/page/archive date and machine-readable chronology |
+| `.record-summary` | Yes | Main project goal on the page and in the archive |
+| `.record-details` | Yes | Supporting selected-page and archive context |
+| direct child `<a href>` | Yes | Selected destination and fallback destination |
 
-## Before publishing
+Keep titles near 30 characters where practical and keep selected-page copy concise enough to fit without scrolling at 1280 × 720.
 
-- Remove both sample projects once real projects replace them.
-- Keep the information book first and projects newest-to-oldest beneath it.
-- Use short titles so a spine is easy to scan. Aim for 30 characters or fewer.
-- Write a summary that says what the project was meant to accomplish, not merely what technology it used.
-- Test every project URL in a private/incognito browser window so private or signed-in-only links are caught.
-- Check the site at 1280 × 720 and on a phone-sized screen. The simplified list replaces the desk scene at 840px and below.
-- Tab through every spine and confirm the selected title changes.
-- Turn on “Reduce motion” in the operating system and confirm nothing important disappears.
+## Chronology and capacity
 
-## Optional evidence
+The information record must remain first. Project records are manually ordered newest to oldest using their `<time datetime>` values. The first project rests immediately below the information volume; the oldest rests at the bottom.
 
-Screenshots, repositories, videos, and longer reflections are intentionally not part of the base template. Add them to the finished project itself or extend a single project card only when that evidence helps explain the work. The title, date, summary, and finished-project link should always remain first.
+The current scene is verified with seven volumes total and with an automated eight-volume fixture. The procedural stack supports up to ten volumes at 1280 × 720, but after adding content always verify that every label remains visible and readable.
+
+## Destinations and assets
+
+Use a real, reachable destination. Relative project URLs are preferred for work stored in this repository because Vite preserves them in the static build. If a project opens on another site, add `target="_blank" rel="noopener"` only when a new tab is intentional; extend the record reader if target behavior must also appear in the selected-book link.
+
+Store optional images, models, or textures under a clearly named repository folder such as `assets/`. Reference module assets from JavaScript with `new URL("./assets/name.webp", import.meta.url)` so Vite rewrites production paths. Optional visuals must have a fallback and must never contain the only copy of project text or navigation.
+
+The six current projects are clearly labeled examples. Replace them with authoritative project content as real work is completed.
+
+## Release check
+
+- Confirm title, valid `datetime`, visible date, summary, details, and destination.
+- Confirm document order is newest to oldest.
+- Run `npm run build` and `npm run test:e2e`.
+- Open the production preview and every destination.
+- Inspect 1280 × 720 and a phone viewport.
+- Disable JavaScript and confirm the new record remains complete.
+- Tab to the new spine and test Enter, Space, arrows, Home, and End.
+- Enable reduced motion and repeat selection.
+- Confirm no existing record required a coordinate edit.
