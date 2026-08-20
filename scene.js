@@ -1,7 +1,33 @@
 import * as THREE from "three";
+import { getBindingProfile } from "./bindings.js";
 
 const BOOK_WIDTH = 8.1;
 const BOOK_HEIGHT = 4.55;
+
+function mulberry32(seed) {
+  return () => {
+    let value = seed += 0x6d2b79f5;
+    value = Math.imul(value ^ value >>> 15, value | 1);
+    value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+    return ((value ^ value >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function roundedRectangle(width, height, radius) {
+  const shape = new THREE.Shape();
+  const left = -width / 2;
+  const bottom = -height / 2;
+  shape.moveTo(left + radius, bottom);
+  shape.lineTo(left + width - radius, bottom);
+  shape.quadraticCurveTo(left + width, bottom, left + width, bottom + radius);
+  shape.lineTo(left + width, bottom + height - radius);
+  shape.quadraticCurveTo(left + width, bottom + height, left + width - radius, bottom + height);
+  shape.lineTo(left + radius, bottom + height);
+  shape.quadraticCurveTo(left, bottom + height, left, bottom + height - radius);
+  shape.lineTo(left, bottom + radius);
+  shape.quadraticCurveTo(left, bottom, left + radius, bottom);
+  return shape;
+}
 
 export function createStudyScene(records, onLayout) {
   const stage = document.querySelector("#scene-canvas");
@@ -16,20 +42,20 @@ export function createStudyScene(records, onLayout) {
   }
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111816);
-  scene.fog = new THREE.Fog(0x111816, 16, 28);
+  scene.background = new THREE.Color(0x151c19);
+  scene.fog = new THREE.Fog(0x151c19, 17, 29);
 
   // A nearly level sightline makes the pages face the reader. The previous
   // implementation looked down by roughly 31 degrees and flattened the book.
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
-  const cameraTarget = new THREE.Vector3(0, 2.75, 0.25);
-  camera.position.set(0, 3.35, 14.4);
+  const cameraTarget = new THREE.Vector3(0, 2.62, 0.18);
+  camera.position.set(0, 4.08, 14.4);
   camera.lookAt(cameraTarget);
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.14;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.setAttribute("aria-hidden", "true");
@@ -39,9 +65,18 @@ export function createStudyScene(records, onLayout) {
   const disposableMaterials = [];
   const disposableTextures = [];
   const stackBooks = [];
+  const openCoverMeshes = [];
+  let turningLeaf;
   let selectionFrame = 0;
+  let renderCount = 0;
+  let disposed = false;
 
-  function canvasTexture(size, draw, repeatX = 1, repeatY = 1) {
+  function render() {
+    renderer.render(scene, camera);
+    renderCount += 1;
+  }
+
+  function canvasTexture(size, draw, repeatX = 1, repeatY = 1, color = true) {
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
@@ -49,7 +84,7 @@ export function createStudyScene(records, onLayout) {
     if (!context) throw new Error("Canvas textures are unavailable.");
     draw(context, size);
     const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repeatX, repeatY);
@@ -58,156 +93,250 @@ export function createStudyScene(records, onLayout) {
     return texture;
   }
 
-  function makeWoodTexture(dark = false) {
-    return canvasTexture(512, (context, size) => {
-      context.fillStyle = dark ? "#342017" : "#624029";
+  function textureSet(size, draw, repeatX = 1, repeatY = 1) {
+    const color = canvasTexture(size, (context, side) => draw(context, side, "color"), repeatX, repeatY, true);
+    const bump = canvasTexture(size, (context, side) => draw(context, side, "bump"), repeatX, repeatY, false);
+    const roughness = canvasTexture(size, (context, side) => draw(context, side, "roughness"), repeatX, repeatY, false);
+    return { color, bump, roughness };
+  }
+
+  // Repeat values are world-scale decisions: broad wood figure, sub-letter
+  // paper fibers, tighter cloth threads, and page-edge lines dense enough to
+  // survive the final camera distance without turning into visible stripes.
+  function makeWoodTextures(dark = false, seed = 91) {
+    return textureSet(512, (context, size, channel) => {
+      const random = mulberry32(seed);
+      context.fillStyle = channel === "color" ? (dark ? "#2d1a12" : "#55331f") : channel === "bump" ? "#777" : "#c2c2c2";
       context.fillRect(0, 0, size, size);
-      for (let y = 7; y < size; y += 13) {
-        context.strokeStyle = `rgba(${dark ? "176,119,78" : "205,147,96"},${0.035 + (y % 5) * 0.008})`;
-        context.lineWidth = 1 + (y % 3);
+      for (let y = -12; y < size + 12; y += 7 + Math.floor(random() * 6)) {
+        const strength = 0.08 + random() * 0.16;
+        context.strokeStyle = channel === "color"
+          ? `rgba(${dark ? "185,119,73" : "217,146,85"},${strength})`
+          : channel === "bump" ? `rgba(220,220,220,${strength * 1.5})` : `rgba(90,90,90,${strength})`;
+        context.lineWidth = 0.6 + random() * 1.5;
         context.beginPath();
-        for (let x = 0; x <= size; x += 8) {
-          const wave = Math.sin(x * 0.036 + y * 0.05) * 4 + Math.sin(x * 0.011) * 3;
+        for (let x = 0; x <= size; x += 5) {
+          const wave = Math.sin(x * 0.018 + y * 0.071) * (2 + random() * 2.5) + Math.sin(x * 0.004) * 5;
           if (x === 0) context.moveTo(x, y + wave);
           else context.lineTo(x, y + wave);
         }
         context.stroke();
       }
-      for (let x = 55; x < size; x += 137) {
-        const gradient = context.createRadialGradient(x, size * 0.45, 3, x, size * 0.45, 38);
-        gradient.addColorStop(0, "#1d0e0875");
-        gradient.addColorStop(0.18, "transparent");
-        gradient.addColorStop(0.33, "#1d0e0830");
-        gradient.addColorStop(1, "transparent");
-        context.fillStyle = gradient;
-        context.fillRect(x - 42, size * 0.34, 84, 115);
-      }
-      for (let index = 0; index < 34; index += 1) {
-        const x = (index * 89 + 23) % size;
-        const y = (index * 151 + 17) % size;
-        context.strokeStyle = index % 3 ? "#f3c78d13" : "#1309062b";
-        context.lineWidth = index % 4 === 0 ? 2 : 1;
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(Math.min(size, x + 18 + index % 31), y + (index % 5) - 2);
-        context.stroke();
-      }
-    }, 3.5, 2);
-  }
-
-  function makePaperTexture(edge = false) {
-    return canvasTexture(256, (context, size) => {
-      context.fillStyle = edge ? "#c7b181" : "#eadbb8";
-      context.fillRect(0, 0, size, size);
-      for (let y = 2; y < size; y += edge ? 4 : 9) {
-        context.fillStyle = edge ? "#8d74472a" : "#72522f10";
-        context.fillRect(0, y, size, 1);
-      }
-      for (let index = 0; index < 90; index += 1) {
-        const x = (index * 73) % size;
-        const y = (index * 41) % size;
-        context.fillStyle = index % 3 ? "#6d512010" : "#fff9dc25";
-        context.fillRect(x, y, 1, 1);
-      }
-      if (!edge) {
-        const stain = context.createRadialGradient(size * 0.82, size * 0.14, 2, size * 0.82, size * 0.14, 48);
-        stain.addColorStop(0, "#9d713616");
-        stain.addColorStop(0.62, "#9d71360a");
-        stain.addColorStop(1, "transparent");
-        context.fillStyle = stain;
-        context.fillRect(0, 0, size, size);
-        for (let index = 0; index < 22; index += 1) {
-          const x = (index * 97) % size;
-          const y = (index * 61) % size;
-          context.strokeStyle = "#6a4a2410";
+      for (let knot = 0; knot < 4; knot += 1) {
+        const x = 70 + random() * (size - 140);
+        const y = random() * size;
+        for (let ring = 5; ring < 34; ring += 6) {
+          context.strokeStyle = channel === "color" ? `rgba(25,10,5,${0.18 - ring / 300})` : channel === "bump" ? "#4b4b4b44" : "#ededed44";
+          context.lineWidth = 1;
           context.beginPath();
-          context.moveTo(x, y);
-          context.lineTo(Math.min(size, x + 24), y + 2);
+          context.ellipse(x, y, ring * 1.8, ring * 0.5, 0.08, 0, Math.PI * 2);
           context.stroke();
         }
       }
-    }, edge ? 1 : 2, edge ? 5 : 2);
-  }
-
-  function makeLeatherTexture(color = "#633f31") {
-    return canvasTexture(256, (context, size) => {
-      context.fillStyle = color;
-      context.fillRect(0, 0, size, size);
-      for (let y = 1; y < size; y += 5) {
-        context.fillStyle = y % 10 ? "#ffffff08" : "#0000000b";
-        context.fillRect(0, y, size, 1);
-      }
-      for (let index = 0; index < 65; index += 1) {
-        const x = (index * 47) % size;
-        const y = (index * 83) % size;
-        context.fillStyle = index % 2 ? "#ffffff08" : "#00000012";
-        context.fillRect(x, y, 9 + (index % 7), 1);
-      }
-      for (let index = 0; index < 28; index += 1) {
-        const x = (index * 101 + 13) % size;
-        const y = (index * 67 + 29) % size;
-        context.strokeStyle = index % 3 ? "#f7e0b812" : "#12090632";
-        context.lineWidth = index % 6 === 0 ? 2 : 1;
+      for (let scratch = 0; scratch < 42; scratch += 1) {
+        const x = random() * size;
+        const y = random() * size;
+        const length = 5 + random() * 42;
+        context.strokeStyle = channel === "color" ? (random() > 0.5 ? "#f5cb8c18" : "#1007042f") : channel === "bump" ? "#3a3a3a55" : "#f0f0f066";
+        context.lineWidth = random() > 0.86 ? 1.4 : 0.65;
         context.beginPath();
         context.moveTo(x, y);
-        context.lineTo(Math.min(size, x + 12 + index % 35), y + (index % 7) - 3);
+        context.lineTo(x + length, y + random() * 3 - 1.5);
         context.stroke();
       }
-      const wornEdge = context.createLinearGradient(0, 0, size, 0);
-      wornEdge.addColorStop(0, "#f1d6a31f");
-      wornEdge.addColorStop(0.05, "transparent");
-      wornEdge.addColorStop(0.94, "transparent");
-      wornEdge.addColorStop(1, "#13090555");
-      context.fillStyle = wornEdge;
+    }, 2.5, 1.25);
+  }
+
+  function makePaperTextures(edge = false, seed = 41) {
+    return textureSet(edge ? 256 : 384, (context, size, channel) => {
+      const random = mulberry32(seed);
+      context.fillStyle = channel === "color" ? (edge ? "#d0c098" : "#e6d7b3") : channel === "bump" ? "#858585" : "#efefef";
       context.fillRect(0, 0, size, size);
-    }, 2.2, 2.2);
+      if (edge) {
+        for (let y = 1; y < size; y += 3 + Math.floor(random() * 3)) {
+          context.fillStyle = channel === "color" ? "#6d593426" : channel === "bump" ? "#5f5f5f" : "#d8d8d8";
+          context.fillRect(0, y, size, 1);
+        }
+      }
+      for (let index = 0; index < size * 1.4; index += 1) {
+        const x = random() * size;
+        const y = random() * size;
+        const length = 1 + random() * 8;
+        context.strokeStyle = channel === "color" ? (random() > 0.52 ? "#fff8dc22" : "#795c3218") : channel === "bump" ? (random() > 0.5 ? "#b8b8b8" : "#686868") : "#dedede";
+        context.lineWidth = 0.45;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.lineTo(x + length, y + random() * 2 - 1);
+        context.stroke();
+      }
+      if (!edge && channel === "color") {
+        const stain = context.createRadialGradient(size * 0.82, size * 0.14, 2, size * 0.82, size * 0.14, 48);
+        stain.addColorStop(0, "#80551f16");
+        stain.addColorStop(0.62, "#80551f08");
+        stain.addColorStop(1, "transparent");
+        context.fillStyle = stain;
+        context.fillRect(0, 0, size, size);
+        for (let fox = 0; fox < 18; fox += 1) {
+          const x = random() * size;
+          const y = random() * size;
+          context.fillStyle = `rgba(105,70,30,${0.018 + random() * 0.025})`;
+          context.beginPath();
+          context.arc(x, y, 0.5 + random() * 1.5, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    }, edge ? 1 : 1.35, edge ? 7 : 1.35);
+  }
+
+  function makeBindingTextures(color = "#633f31", kind = "calf", seed = 73) {
+    const isCloth = kind === "cloth" || kind === "buckram";
+    return textureSet(384, (context, size, channel) => {
+      const random = mulberry32(seed);
+      context.fillStyle = channel === "color" ? color : channel === "bump" ? "#777" : isCloth ? "#e5e5e5" : "#c9c9c9";
+      context.fillRect(0, 0, size, size);
+      if (isCloth) {
+        for (let line = 0; line < size; line += 3) {
+          context.strokeStyle = channel === "color" ? (line % 6 ? "#ffffff0d" : "#00000013") : channel === "bump" ? (line % 6 ? "#adadad" : "#585858") : "#ededed";
+          context.lineWidth = 0.7;
+          context.beginPath(); context.moveTo(line, 0); context.lineTo(line, size); context.stroke();
+          context.beginPath(); context.moveTo(0, line); context.lineTo(size, line + 1); context.stroke();
+        }
+      } else {
+        for (let pore = 0; pore < 1200; pore += 1) {
+          const x = random() * size;
+          const y = random() * size;
+          const radius = 0.25 + random() * 1.1;
+          context.fillStyle = channel === "color" ? (random() > 0.42 ? "#ffffff0a" : "#00000016") : channel === "bump" ? (random() > 0.55 ? "#999" : "#555") : `${Math.floor(165 + random() * 70)},${Math.floor(165 + random() * 70)},${Math.floor(165 + random() * 70)}`;
+          if (channel === "roughness") context.fillStyle = `rgb(${Math.floor(165 + random() * 70)},${Math.floor(165 + random() * 70)},${Math.floor(165 + random() * 70)})`;
+          context.beginPath(); context.ellipse(x, y, radius * 1.8, radius, random(), 0, Math.PI * 2); context.fill();
+        }
+      }
+      for (let crease = 0; crease < (isCloth ? 18 : 38); crease += 1) {
+        const x = random() * size;
+        const y = random() * size;
+        context.strokeStyle = channel === "color" ? "#10080629" : channel === "bump" ? "#33333388" : "#f4f4f477";
+        context.lineWidth = random() > 0.85 ? 1.3 : 0.6;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.quadraticCurveTo(x + 9 + random() * 24, y - 3 + random() * 6, x + 20 + random() * 42, y + random() * 5 - 2.5);
+        context.stroke();
+      }
+      if (channel === "color") {
+        const wear = context.createLinearGradient(0, 0, size, 0);
+        wear.addColorStop(0, "#d7b47a2b"); wear.addColorStop(0.045, "transparent");
+        wear.addColorStop(0.94, "transparent"); wear.addColorStop(1, "#13090666");
+        context.fillStyle = wear; context.fillRect(0, 0, size, size);
+      }
+    }, isCloth ? 2.8 : 2.1, isCloth ? 2.8 : 2.1);
   }
 
   function makeArtworkTexture() {
     return canvasTexture(512, (context, size) => {
-      const sky = context.createLinearGradient(0, 0, 0, size);
-      sky.addColorStop(0, "#314942");
-      sky.addColorStop(0.54, "#9b815c");
-      sky.addColorStop(1, "#3c4936");
-      context.fillStyle = sky;
+      context.fillStyle = "#b8aa87";
       context.fillRect(0, 0, size, size);
-      context.fillStyle = "#d2b97880";
+      context.strokeStyle = "#40392e88";
+      context.lineWidth = 2;
+      context.strokeRect(28, 28, size - 56, size - 56);
+      context.strokeRect(38, 38, size - 76, size - 76);
+      // A deliberately generic collegiate engraving: masonry, windows and
+      // cross-hatching, with no borrowed or recognizable copyrighted image.
+      context.fillStyle = "#554a3b";
+      context.fillRect(92, 226, 328, 142);
       context.beginPath();
-      context.arc(355, 130, 48, 0, Math.PI * 2);
-      context.fill();
-      context.fillStyle = "#26382fd0";
-      context.beginPath();
-      context.moveTo(0, 330);
-      context.lineTo(130, 190);
-      context.lineTo(250, 332);
-      context.lineTo(370, 215);
-      context.lineTo(512, 352);
-      context.lineTo(512, 512);
-      context.lineTo(0, 512);
-      context.fill();
+      context.moveTo(72, 228); context.lineTo(256, 104); context.lineTo(440, 228); context.closePath(); context.fill();
+      context.fillStyle = "#b8aa87";
+      for (let row = 0; row < 2; row += 1) {
+        for (let column = 0; column < 6; column += 1) {
+          context.fillRect(112 + column * 51, 250 + row * 55, 21, 35);
+        }
+      }
+      context.strokeStyle = "#40392e70";
+      context.lineWidth = 1;
+      for (let line = -80; line < 600; line += 9) {
+        context.beginPath(); context.moveTo(line, 408); context.lineTo(line + 190, 92); context.stroke();
+      }
+      context.fillStyle = "#40392ea8";
+      context.font = "20px Georgia";
+      context.textAlign = "center";
+      context.fillText("COLLEGIUM · MDCCCXCIV", size / 2, 438);
     });
   }
 
-  const woodTexture = makeWoodTexture(false);
-  const darkWoodTexture = makeWoodTexture(true);
-  const paperTexture = makePaperTexture(false);
-  const pageEdgeTexture = makePaperTexture(true);
-  const leatherTexture = makeLeatherTexture();
+  function pbrMaterial(textures, options = {}) {
+    return new THREE.MeshStandardMaterial({
+      map: textures.color,
+      bumpMap: textures.bump,
+      roughnessMap: textures.roughness,
+      bumpScale: options.bumpScale ?? 0.025,
+      roughness: options.roughness ?? 0.88,
+      metalness: options.metalness ?? 0,
+      color: options.color ?? 0xffffff
+    });
+  }
+
+  const woodTextures = makeWoodTextures(false, 91);
+  const darkWoodTextures = makeWoodTextures(true, 147);
+  const paperTextures = makePaperTextures(false);
+  const pageEdgeTextures = makePaperTextures(true);
+  const leatherTextures = makeBindingTextures("#573426", "calf", 119);
+  const brassRoughness = canvasTexture(256, (context, size) => {
+    const random = mulberry32(822);
+    context.fillStyle = "#a9a9a9"; context.fillRect(0, 0, size, size);
+    for (let mark = 0; mark < 240; mark += 1) {
+      const shade = Math.floor(70 + random() * 150);
+      context.fillStyle = `rgba(${shade},${shade},${shade},${0.12 + random() * 0.28})`;
+      context.beginPath(); context.arc(random() * size, random() * size, 0.7 + random() * 5, 0, Math.PI * 2); context.fill();
+    }
+    const recess = context.createLinearGradient(0, 0, size, size);
+    recess.addColorStop(0, "#33333366"); recess.addColorStop(0.12, "transparent"); recess.addColorStop(0.88, "transparent"); recess.addColorStop(1, "#25252588");
+    context.fillStyle = recess; context.fillRect(0, 0, size, size);
+  }, 1, 1, false);
   const materials = {
-    wall: new THREE.MeshStandardMaterial({ color: 0x1b2925, roughness: 0.98 }),
-    wood: new THREE.MeshStandardMaterial({ map: woodTexture, bumpMap: woodTexture, bumpScale: 0.035, roughness: 0.79 }),
-    darkWood: new THREE.MeshStandardMaterial({ map: darkWoodTexture, bumpMap: darkWoodTexture, bumpScale: 0.028, roughness: 0.78 }),
-    paper: new THREE.MeshStandardMaterial({ map: paperTexture, bumpMap: paperTexture, bumpScale: 0.012, roughness: 0.97 }),
-    pageEdge: new THREE.MeshStandardMaterial({ map: pageEdgeTexture, bumpMap: pageEdgeTexture, bumpScale: 0.018, roughness: 1 }),
-    leather: new THREE.MeshStandardMaterial({ map: leatherTexture, bumpMap: leatherTexture, bumpScale: 0.045, roughness: 0.87 }),
-    brass: new THREE.MeshStandardMaterial({ color: 0xb9964d, roughness: 0.3, metalness: 0.78 }),
+    wall: new THREE.MeshStandardMaterial({ color: 0x1e2925, roughness: 0.99 }),
+    wood: pbrMaterial(woodTextures, { bumpScale: 0.022, roughness: 0.8 }),
+    darkWood: pbrMaterial(darkWoodTextures, { bumpScale: 0.018, roughness: 0.84 }),
+    paper: pbrMaterial(paperTextures, { bumpScale: 0.009, roughness: 0.96 }),
+    pageEdge: pbrMaterial(pageEdgeTextures, { bumpScale: 0.016, roughness: 1 }),
+    pageSeam: new THREE.MeshStandardMaterial({ color: 0x8f8063, roughness: 1 }),
+    leather: pbrMaterial(leatherTextures, { bumpScale: 0.032, roughness: 0.86 }),
+    brass: new THREE.MeshStandardMaterial({ color: 0x8d6c31, roughnessMap: brassRoughness, roughness: 0.62, metalness: 0.72 }),
     artwork: new THREE.MeshStandardMaterial({ map: makeArtworkTexture(), roughness: 0.91 }),
     ink: new THREE.MeshPhysicalMaterial({ color: 0x111817, roughness: 0.22, metalness: 0.08, clearcoat: 0.8 })
   };
   disposableMaterials.push(...Object.values(materials));
+
+  // Compact local albedos add photographic detail to the two largest visible
+  // surfaces while generated bump/roughness maps retain stable PBR response.
+  // Either request may fail independently without blocking the study.
+  function loadLocalAlbedo(url, material, repeat, label) {
+    new THREE.TextureLoader().load(
+      url,
+      (texture) => {
+        if (disposed) {
+          texture.dispose();
+          return;
+        }
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(...repeat);
+        texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        disposableTextures.push(texture);
+        material.map = texture;
+        material.needsUpdate = true;
+        render();
+      },
+      undefined,
+      () => console.warn(`The local ${label} albedo could not load; using the generated fallback.`)
+    );
+  }
+  const walnutAlbedoUrl = new URL("./assets/textures/aged-walnut.jpg", import.meta.url).href;
+  const paperAlbedoUrl = new URL("./assets/textures/aged-rag-paper.jpg", import.meta.url).href;
+  loadLocalAlbedo(walnutAlbedoUrl, materials.wood, [2.15, 1.15], "walnut");
+  loadLocalAlbedo(paperAlbedoUrl, materials.paper, [1.28, 1.28], "rag-paper");
   const shelfBookMaterials = ["#49372f", "#394d46", "#5c3c40", "#46526b", "#67552f"].map((color) => {
-    const texture = makeLeatherTexture(color);
-    const material = new THREE.MeshStandardMaterial({ map: texture, bumpMap: texture, bumpScale: 0.035, roughness: 0.9 });
+    const texture = makeBindingTextures(color, "cloth", color.charCodeAt(1) * 31);
+    const material = pbrMaterial(texture, { bumpScale: 0.018, roughness: 0.94 });
     disposableMaterials.push(material);
     return material;
   });
@@ -229,63 +358,105 @@ export function createStudyScene(records, onLayout) {
   }
 
   function addLights() {
-    scene.add(new THREE.HemisphereLight(0x99aaa4, 0x25150e, 1.05));
+    scene.add(new THREE.HemisphereLight(0xa9b1a8, 0x352117, 1.08));
+    scene.add(new THREE.AmbientLight(0x8e8b80, 0.38));
 
-    const lamp = new THREE.SpotLight(0xffd18a, 115, 26, Math.PI / 4.4, 0.62, 1.45);
-    lamp.position.set(-5.7, 7.4, 7.1);
-    lamp.target.position.set(-1.3, 2.5, 0.5);
+    // A local point source supplies the visible warm falloff. A parallel warm
+    // key from the same direction supplies one economical shadow map without
+    // exposing a spotlight cone edge across the nearly vertical pages.
+    const lampGlow = new THREE.PointLight(0xffc978, 48, 15, 2);
+    lampGlow.position.set(-4.82, 5.18, 2.28);
+    scene.add(lampGlow);
+    const lamp = new THREE.DirectionalLight(0xffd39a, 1.65);
+    lamp.position.set(-4.82, 6.0, 6.2);
+    lamp.target.position.set(-1.25, 2.25, 0.42);
     lamp.castShadow = true;
     lamp.shadow.mapSize.set(1024, 1024);
-    lamp.shadow.bias = -0.00035;
+    lamp.shadow.bias = -0.00028;
+    lamp.shadow.normalBias = 0.025;
+    lamp.shadow.camera.left = -8;
+    lamp.shadow.camera.right = 8;
+    lamp.shadow.camera.top = 7;
+    lamp.shadow.camera.bottom = -4;
+    lamp.shadow.camera.near = 0.1;
+    lamp.shadow.camera.far = 20;
     scene.add(lamp, lamp.target);
 
-    const stackFill = new THREE.PointLight(0xb9d0c8, 13, 14, 2);
-    stackFill.position.set(5.6, 5.4, 5.2);
+    const stackFill = new THREE.PointLight(0x9bada7, 27, 12, 2);
+    stackFill.position.set(5.2, 4.9, 4.1);
     scene.add(stackFill);
 
-    const shelfGlow = new THREE.PointLight(0xd89d59, 7, 8, 2.2);
+    const shelfGlow = new THREE.PointLight(0xc58a50, 5.2, 8, 2.2);
     shelfGlow.position.set(6.6, 4.7, -1.9);
     scene.add(shelfGlow);
 
-    const leftShelfGlow = new THREE.PointLight(0xb47a43, 4.5, 7, 2.3);
+    const leftShelfGlow = new THREE.PointLight(0xad7647, 4.2, 7, 2.3);
     leftShelfGlow.position.set(-7.0, 4.4, -1.85);
     scene.add(leftShelfGlow);
   }
 
   function addRoom() {
+    const blotterMaterial = new THREE.MeshStandardMaterial({ color: 0x3b2b23, roughness: 0.96 });
+    disposableMaterials.push(blotterMaterial);
     mesh(new THREE.BoxGeometry(20, 10, 0.4), materials.wall, { position: [0, 4.2, -3.45] });
-    [-5.3, 0, 5.3].forEach((x) => {
-      mesh(new THREE.BoxGeometry(0.1, 8.1, 0.13), materials.darkWood, { position: [x, 4.2, -3.17], cast: false });
+    [-5.15, 0.22, 5.48].forEach((x) => {
+      mesh(new THREE.BoxGeometry(0.13, 8.1, 0.18), materials.darkWood, { position: [x, 4.2, -3.17], cast: false });
     });
-    mesh(new THREE.BoxGeometry(20, 0.18, 0.22), materials.brass, { position: [0, 5.65, -3.18], cast: false });
+    [0.72, 5.7, 8.24].forEach((y, index) => {
+      mesh(new THREE.BoxGeometry(20, index === 1 ? 0.14 : 0.09, 0.2), materials.darkWood, { position: [0, y, -3.14], cast: false });
+    });
+    // Shallow beveled battens make the panel wall read as construction rather
+    // than a single dark box while staying well behind the reading position.
+    [[-2.48, 6.92, 4.7, 1.84], [2.95, 6.92, 4.55, 1.84]].forEach(([x, y, width, height]) => {
+      mesh(new THREE.BoxGeometry(width, 0.08, 0.13), materials.darkWood, { position: [x, y + height / 2, -3.03], cast: false });
+      mesh(new THREE.BoxGeometry(width, 0.08, 0.13), materials.darkWood, { position: [x, y - height / 2, -3.03], cast: false });
+      [-1, 1].forEach((side) => mesh(new THREE.BoxGeometry(0.08, height, 0.13), materials.darkWood, { position: [x + side * width / 2, y, -3.03], cast: false }));
+    });
     mesh(new THREE.BoxGeometry(20, 0.7, 8.5), materials.wood, { position: [0, -0.55, 1.05] });
     mesh(new THREE.BoxGeometry(20.2, 0.78, 0.5), materials.darkWood, { position: [0, -0.5, 5.05] });
+    mesh(new THREE.BoxGeometry(9.15, 0.045, 5.4), blotterMaterial, { position: [-1.95, -0.17, 0.65], cast: false });
 
-    addRecessedBookcase(-7.2, 3.55, 3.0);
-    addRecessedBookcase(7.2, 3.55, 3.0);
+    addRecessedBookcase(-7.32, 3.55, 2.85);
+    addRecessedBookcase(7.05, 3.72, 3.18);
 
-    const lampStem = mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.7, 18), materials.brass, { position: [-6.45, 1.9, -1.3] });
+    const lampStem = mesh(new THREE.CylinderGeometry(0.065, 0.085, 5.2, 18), materials.brass, { position: [-6.02, 2.52, 0.32] });
     lampStem.castShadow = true;
-    const shade = mesh(new THREE.CylinderGeometry(0.5, 1.05, 1.05, 28, 1, true), materials.brass, { position: [-6.45, 4.55, -1.3] });
+    const shadeMaterial = new THREE.MeshStandardMaterial({ color: 0x1d4a3c, emissive: 0x06130e, emissiveIntensity: 0.3, roughness: 0.53, metalness: 0.08, side: THREE.DoubleSide });
+    const shadeInterior = new THREE.MeshStandardMaterial({ color: 0xc49b54, roughness: 0.7, metalness: 0.32, side: THREE.BackSide });
+    disposableMaterials.push(shadeMaterial, shadeInterior);
+    const shade = mesh(new THREE.CylinderGeometry(0.48, 0.9, 0.72, 30, 1, true), shadeMaterial, { position: [-4.9, 5.54, 2.18], rotation: [0, 0, -0.13], cast: false });
     shade.material.side = THREE.DoubleSide;
+    mesh(new THREE.CylinderGeometry(0.465, 0.87, 0.7, 30, 1, true), shadeInterior, { position: [-4.89, 5.52, 2.195], rotation: [0, 0, -0.13], cast: false });
     const bulbMaterial = new THREE.MeshStandardMaterial({ color: 0xffd89a, emissive: 0xffb95d, emissiveIntensity: 2.5 });
     disposableMaterials.push(bulbMaterial);
-    mesh(new THREE.SphereGeometry(0.19, 18, 14), bulbMaterial, { position: [-6.45, 4.28, -1.3], cast: false });
-    mesh(new THREE.CylinderGeometry(0.72, 0.9, 0.16, 28), materials.brass, { position: [-6.45, -0.04, -1.3] });
+    mesh(new THREE.SphereGeometry(0.16, 18, 14), bulbMaterial, { position: [-4.82, 5.19, 2.23], cast: false });
+    const addBrassRod = (start, end, radius = 0.055) => {
+      const from = new THREE.Vector3(...start);
+      const to = new THREE.Vector3(...end);
+      const direction = to.clone().sub(from);
+      const rod = mesh(new THREE.CylinderGeometry(radius, radius, direction.length(), 14), materials.brass, {
+        position: from.clone().add(to).multiplyScalar(0.5).toArray()
+      });
+      rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+      return rod;
+    };
+    addBrassRod([-6.02, 5.08, 0.32], [-5.78, 5.25, 1.34], 0.06);
+    addBrassRod([-5.78, 5.25, 1.34], [-5.02, 5.25, 2.1], 0.055);
+    mesh(new THREE.CylinderGeometry(0.7, 0.86, 0.15, 28), materials.brass, { position: [-6.02, -0.05, 0.32] });
 
-    mesh(new THREE.BoxGeometry(2.35, 2.9, 0.22), materials.darkWood, { position: [4.9, 4.28, -3.08] });
-    mesh(new THREE.BoxGeometry(2.03, 2.58, 0.08), materials.artwork, { position: [4.9, 4.28, -2.94], cast: false });
+    mesh(new THREE.BoxGeometry(2.25, 2.75, 0.22), materials.darkWood, { position: [4.72, 4.35, -3.08], rotation: [0, 0, -0.012] });
+    mesh(new THREE.BoxGeometry(1.92, 2.42, 0.08), materials.artwork, { position: [4.72, 4.35, -2.94], rotation: [0, 0, -0.012], cast: false });
 
     // A small inkwell gives the desk a useful scale cue without competing with
     // the selector. It remains behind the foremost book-spine plane.
-    mesh(new THREE.CylinderGeometry(0.3, 0.37, 0.42, 18), materials.ink, { position: [6.65, 0.06, 2.4] });
-    mesh(new THREE.CylinderGeometry(0.17, 0.23, 0.12, 18), materials.brass, { position: [6.65, 0.33, 2.4] });
+    mesh(new THREE.CylinderGeometry(0.3, 0.37, 0.42, 18), materials.ink, { position: [6.55, 0.06, 0.82] });
+    mesh(new THREE.CylinderGeometry(0.17, 0.23, 0.12, 18), materials.brass, { position: [6.55, 0.33, 0.82] });
   }
 
   function addRecessedBookcase(x, centerY, width) {
     const height = 5.6;
     const frameDepth = -2.9;
-    const backMaterial = new THREE.MeshStandardMaterial({ color: 0x0b1210, roughness: 0.99 });
+    const backMaterial = new THREE.MeshStandardMaterial({ color: 0x131a17, roughness: 0.99 });
     disposableMaterials.push(backMaterial);
     mesh(new THREE.BoxGeometry(width, height, 0.16), backMaterial, { position: [x, centerY, -3.16], cast: false });
 
@@ -297,6 +468,9 @@ export function createStudyScene(records, onLayout) {
     mesh(new THREE.BoxGeometry(width + 0.38, 0.22, 0.5), materials.darkWood, {
       position: [x, centerY + height / 2 + 0.1, frameDepth]
     });
+    mesh(new THREE.BoxGeometry(width + 0.62, 0.11, 0.58), materials.wood, {
+      position: [x, centerY + height / 2 + 0.26, frameDepth + 0.02]
+    });
 
     const shelfLevels = [1.25, 2.6, 3.95, 5.3];
     shelfLevels.forEach((level, shelfIndex) => {
@@ -305,20 +479,24 @@ export function createStudyScene(records, onLayout) {
         position: [x, y, -2.82]
       });
 
-      let cursor = x - width / 2 + 0.25;
-      for (let index = 0; index < 8; index += 1) {
-        const bookWidth = 0.18 + ((index * 7 + shelfIndex) % 5) * 0.035;
-        const bookHeight = 0.58 + ((index * 11 + shelfIndex) % 6) * 0.055;
+      const random = mulberry32(Math.floor((x + 9) * 1000) + shelfIndex * 97);
+      let cursor = x - width / 2 + 0.2 + (shelfIndex % 3) * 0.08;
+      const count = 5 + Math.floor(random() * 5);
+      for (let index = 0; index < count; index += 1) {
+        if (index === 2 && shelfIndex % 2 === 0) cursor += 0.16 + random() * 0.18;
+        const bookWidth = 0.16 + random() * 0.16;
+        const bookHeight = 0.52 + random() * 0.37;
         const material = shelfBookMaterials[(index + shelfIndex) % shelfBookMaterials.length];
         const geometry = new THREE.BoxGeometry(bookWidth, bookHeight, 0.38);
         disposableGeometries.push(geometry);
         const book = new THREE.Mesh(geometry, material);
-        book.position.set(cursor + bookWidth / 2, y + 0.08 + bookHeight / 2, -2.48 - (index % 3) * 0.035);
-        book.rotation.z = index % 5 === 0 ? -0.035 : index % 4 === 0 ? 0.025 : 0;
+        book.position.set(cursor + bookWidth / 2, y + 0.08 + bookHeight / 2, -2.48 - random() * 0.07);
+        book.rotation.z = index % 4 === 0 ? (random() - 0.5) * 0.095 : (random() - 0.5) * 0.018;
         book.castShadow = true;
         book.receiveShadow = true;
         scene.add(book);
-        cursor += bookWidth + 0.055;
+        cursor += bookWidth + 0.025 + random() * 0.05;
+        if (cursor > x + width / 2 - 0.18) break;
       }
     });
   }
@@ -328,7 +506,7 @@ export function createStudyScene(records, onLayout) {
     group.position.set(-2.1, 2.55, 0.15);
     scene.add(group);
 
-    const boardGeometry = new THREE.BoxGeometry(8.55, 5.0, 0.34);
+    const boardGeometry = new THREE.BoxGeometry(8.55, 5.0, 0.38);
     disposableGeometries.push(boardGeometry);
     const board = new THREE.Mesh(boardGeometry, materials.darkWood);
     board.position.z = -0.3;
@@ -336,7 +514,7 @@ export function createStudyScene(records, onLayout) {
     board.receiveShadow = true;
     group.add(board);
 
-    const ledgeGeometry = new THREE.BoxGeometry(8.8, 0.28, 0.65);
+    const ledgeGeometry = new THREE.BoxGeometry(8.8, 0.3, 0.68);
     disposableGeometries.push(ledgeGeometry);
     const ledge = new THREE.Mesh(ledgeGeometry, materials.wood);
     ledge.position.set(0, -2.35, 0.18);
@@ -351,78 +529,234 @@ export function createStudyScene(records, onLayout) {
     support.castShadow = true;
     group.add(support);
 
+    // A soft contact patch strengthens the book/lectern junction without an
+    // integrated-GPU post-processing pass.
+    const contactMaterial = new THREE.MeshBasicMaterial({ color: 0x100906, transparent: true, opacity: 0.24, depthWrite: false });
+    disposableMaterials.push(contactMaterial);
+    const contactGeometry = new THREE.PlaneGeometry(7.9, 4.3);
+    disposableGeometries.push(contactGeometry);
+    const contact = new THREE.Mesh(contactGeometry, contactMaterial);
+    contact.position.set(0, -0.06, -0.075);
+    group.add(contact);
+
     const halfWidth = BOOK_WIDTH / 2;
     [-1, 1].forEach((side) => {
-      const coverGeometry = new THREE.BoxGeometry(halfWidth + 0.16, BOOK_HEIGHT + 0.18, 0.15);
-      const pagesGeometry = new THREE.BoxGeometry(halfWidth - 0.08, BOOK_HEIGHT - 0.08, 0.18);
+      const halfGroup = new THREE.Group();
+      halfGroup.position.x = side * halfWidth / 2;
+      halfGroup.rotation.y = side * -0.046 + (side < 0 ? -0.006 : 0.004);
+      group.add(halfGroup);
+
+      const coverGeometry = new THREE.ExtrudeGeometry(
+        roundedRectangle(halfWidth + 0.18, BOOK_HEIGHT + 0.2, 0.13 + (side > 0 ? 0.018 : 0)),
+        { depth: 0.1, bevelEnabled: true, bevelSegments: 2, bevelSize: 0.028, bevelThickness: 0.018, curveSegments: 5 }
+      );
+      const pagesGeometry = new THREE.ExtrudeGeometry(
+        roundedRectangle(halfWidth - 0.07, BOOK_HEIGHT - 0.09, 0.085),
+        { depth: 0.235 + (side > 0 ? 0.012 : 0), bevelEnabled: true, bevelSegments: 2, bevelSize: 0.018, bevelThickness: 0.012, curveSegments: 4 }
+      );
       disposableGeometries.push(coverGeometry, pagesGeometry);
 
       const cover = new THREE.Mesh(coverGeometry, materials.leather);
-      cover.position.set(side * (halfWidth / 2), 0, 0.05);
-      cover.rotation.y = side * -0.055;
+      cover.position.set(0, side < 0 ? -0.018 : 0.012, -0.045);
       cover.castShadow = true;
       cover.receiveShadow = true;
-      group.add(cover);
+      halfGroup.add(cover);
+      openCoverMeshes.push(cover);
 
       const pages = new THREE.Mesh(pagesGeometry, materials.pageEdge);
-      pages.position.set(side * (halfWidth / 2), 0, 0.18);
-      pages.rotation.y = side * -0.055;
+      pages.position.set(side * -0.018, side < 0 ? 0.006 : -0.004, 0.095);
       pages.castShadow = true;
       pages.receiveShadow = true;
-      group.add(pages);
+      halfGroup.add(pages);
 
-      const faceGeometry = new THREE.PlaneGeometry(halfWidth - 0.18, BOOK_HEIGHT - 0.18, 14, 8);
+      const faceGeometry = new THREE.PlaneGeometry(halfWidth - 0.17, BOOK_HEIGHT - 0.17, 24, 14);
       const positions = faceGeometry.attributes.position;
       for (let index = 0; index < positions.count; index += 1) {
         const x = positions.getX(index);
-        const normalized = side < 0 ? (x + halfWidth / 2) / halfWidth : (halfWidth / 2 - x) / halfWidth;
-        positions.setZ(index, Math.sin(Math.max(0, normalized) * Math.PI) * 0.065);
+        const y = positions.getY(index);
+        const localHalf = (halfWidth - 0.17) / 2;
+        const rawDistanceFromGutter = side < 0
+          ? (localHalf - x) / (localHalf * 2)
+          : (x + localHalf) / (localHalf * 2);
+        const distanceFromGutter = THREE.MathUtils.clamp(rawDistanceFromGutter, 0, 1);
+        const vertical = (y + (BOOK_HEIGHT - 0.17) / 2) / (BOOK_HEIGHT - 0.17);
+        const gutterLift = 0.07 * Math.exp(-distanceFromGutter * 5.1);
+        const outerSag = -0.014 * Math.pow(distanceFromGutter, 1.55);
+        const sheetSag = -Math.sin(vertical * Math.PI) * (0.005 + distanceFromGutter * 0.006);
+        const asymmetry = side < 0 ? Math.sin(vertical * Math.PI * 2) * 0.005 : -Math.sin(vertical * Math.PI) * 0.003;
+        positions.setZ(index, gutterLift + outerSag + sheetSag + asymmetry);
       }
       faceGeometry.computeVertexNormals();
       disposableGeometries.push(faceGeometry);
       const face = new THREE.Mesh(faceGeometry, materials.paper);
-      face.position.set(side * (halfWidth / 2), 0, 0.29);
-      face.rotation.y = side * -0.055;
-      face.castShadow = true;
-      face.receiveShadow = true;
-      group.add(face);
+      face.position.set(side * -0.025, side < 0 ? 0.012 : -0.008, 0.415);
+      // The leaf is an ultra-thin surface. Let the thicker text block and
+      // covers cast/receive contact shadows; self-shadowing this tessellated
+      // face creates meter-scale shadow acne across the printed area.
+      face.castShadow = false;
+      face.receiveShadow = false;
+      halfGroup.add(face);
+
+      // A few independently offset edges break the perfect page-block seam at
+      // the final camera distance without modeling hundreds of sheets.
+      for (let layer = 0; layer < 3; layer += 1) {
+        [-1, 1].forEach((edgeSide) => {
+          const edgeGeometry = new THREE.BoxGeometry(halfWidth - 0.2 - layer * 0.014, 0.009, 0.15);
+          disposableGeometries.push(edgeGeometry);
+          const edge = new THREE.Mesh(edgeGeometry, materials.pageEdge);
+          edge.position.set((layer % 2 ? 1 : -1) * 0.006, edgeSide * (BOOK_HEIGHT / 2 - 0.07 - layer * 0.014), 0.27 + layer * 0.006);
+          edge.rotation.z = edgeSide * (layer - 1) * 0.0007 * side;
+          edge.castShadow = true;
+          halfGroup.add(edge);
+        });
+      }
+
+      // The exposed fore-edge uses three nearly coincident sheet lips. Their
+      // tiny offsets read as accumulated leaves only where the face is inset.
+      for (let layer = 0; layer < 3; layer += 1) {
+        const foreEdgeGeometry = new THREE.BoxGeometry(0.007, BOOK_HEIGHT - 0.22 - layer * 0.012, 0.145);
+        disposableGeometries.push(foreEdgeGeometry);
+        const foreEdge = new THREE.Mesh(foreEdgeGeometry, materials.pageEdge);
+        foreEdge.position.set(side * (halfWidth / 2 - 0.052 - layer * 0.008), (layer - 1) * 0.004, 0.275 + layer * 0.006);
+        foreEdge.castShadow = false;
+        halfGroup.add(foreEdge);
+      }
     });
 
-    const hingeGeometry = new THREE.CylinderGeometry(0.12, 0.15, BOOK_HEIGHT, 24);
+    const hingeGeometry = new THREE.CylinderGeometry(0.07, 0.095, BOOK_HEIGHT, 24);
     disposableGeometries.push(hingeGeometry);
     const hinge = new THREE.Mesh(hingeGeometry, materials.leather);
     hinge.position.z = 0.31;
     hinge.castShadow = true;
     group.add(hinge);
 
+    const leafGeometry = new THREE.PlaneGeometry(halfWidth - 0.2, BOOK_HEIGHT - 0.2, 18, 10);
+    const leafPositions = leafGeometry.attributes.position;
+    for (let index = 0; index < leafPositions.count; index += 1) {
+      const x = leafPositions.getX(index);
+      const normalized = (x + (halfWidth - 0.2) / 2) / (halfWidth - 0.2);
+      leafPositions.setZ(index, Math.sin(normalized * Math.PI) * 0.035);
+    }
+    leafGeometry.computeVertexNormals();
+    disposableGeometries.push(leafGeometry);
+    turningLeaf = new THREE.Group();
+    const leaf = new THREE.Mesh(leafGeometry, materials.paper);
+    leaf.position.x = (halfWidth - 0.2) / 2;
+    leaf.castShadow = true;
+    turningLeaf.position.set(0.02, -0.01, 0.49);
+    turningLeaf.visible = false;
+    turningLeaf.add(leaf);
+    group.add(turningLeaf);
+
     return group;
   }
 
   function addStack() {
-    const widths = [3.7, 3.45, 3.62, 3.38, 3.72, 3.5, 3.66, 3.42, 3.58, 3.48];
-    const offsets = [0, -0.12, 0.09, -0.05, 0.13, -0.08, 0.04, -0.1, 0.07, -0.03];
-    const thickness = 0.55;
-    const gap = 0.06;
-    const depth = 2.25;
+    const gap = 0.028;
+    const profiles = records.map(getBindingProfile);
+    const centers = new Array(records.length);
+    let cursor = 0.03;
+    for (let index = records.length - 1; index >= 0; index -= 1) {
+      centers[index] = cursor + profiles[index].thickness / 2;
+      cursor += profiles[index].thickness + gap;
+    }
 
     records.forEach((record, index) => {
-      const level = records.length - index - 1;
-      const width = widths[index % widths.length];
-      const clothTexture = makeLeatherTexture(record.color);
-      const cloth = new THREE.MeshStandardMaterial({ map: clothTexture, bumpMap: clothTexture, bumpScale: 0.055, roughness: 0.9 });
-      disposableMaterials.push(cloth);
-      const geometry = new THREE.BoxGeometry(width, thickness, depth);
-      disposableGeometries.push(geometry);
-      const object = new THREE.Mesh(geometry, cloth);
-      object.position.set(4.25 + offsets[index % offsets.length], 0.03 + thickness / 2 + level * (thickness + gap), 0.7);
-      object.rotation.z = [0.006, -0.009, 0.004, -0.005][index % 4];
-      object.castShadow = true;
-      object.receiveShadow = true;
+      const profile = profiles[index];
+      const { width, thickness, depth } = profile;
+      const bindingTextures = makeBindingTextures(record.color, profile.kind, profile.seed);
+      const bindingMaterial = pbrMaterial(bindingTextures, {
+        bumpScale: profile.kind === "cloth" || profile.kind === "buckram" ? 0.018 : 0.032,
+        roughness: profile.kind === "cloth" ? 0.96 : profile.kind === "buckram" ? 0.92 : 0.86
+      });
+      disposableMaterials.push(bindingMaterial);
+
+      const object = new THREE.Group();
+      object.position.set(4.45 + profile.offset, centers[index], 0.69 + ((profile.seed >>> 19) % 5) * 0.012);
+      object.rotation.z = profile.lean;
       scene.add(object);
-      stackBooks.push({ object, width, thickness, depth, homeX: object.position.x });
+
+      const boardThickness = 0.045;
+      const paperBlockGeometry = new THREE.BoxGeometry(width - 0.17, thickness - boardThickness * 2 - 0.025, depth - 0.16);
+      disposableGeometries.push(paperBlockGeometry);
+      const paperBlock = new THREE.Mesh(paperBlockGeometry, materials.pageEdge);
+      paperBlock.position.z = -0.055;
+      paperBlock.castShadow = true;
+      paperBlock.receiveShadow = true;
+      object.add(paperBlock);
+
+      // A handful of sub-pixel head/tail seams catch oblique light without
+      // turning the text block into striped decorative boards.
+      const seamGeometry = new THREE.BoxGeometry(0.012, 0.004, depth - 0.22);
+      disposableGeometries.push(seamGeometry);
+      [-1, 1].forEach((end) => {
+        [-0.29, 0, 0.31].forEach((layer) => {
+          const seam = new THREE.Mesh(seamGeometry, materials.pageSeam);
+          seam.position.set(end * (width / 2 - 0.083), layer * (thickness - boardThickness * 2), -0.055);
+          seam.castShadow = false;
+          object.add(seam);
+        });
+      });
+
+      const boardGeometry = new THREE.BoxGeometry(width, boardThickness, depth + 0.035);
+      disposableGeometries.push(boardGeometry);
+      [-1, 1].forEach((side) => {
+        const board = new THREE.Mesh(boardGeometry, bindingMaterial);
+        board.position.y = side * (thickness / 2 - boardThickness / 2);
+        board.castShadow = true;
+        board.receiveShadow = true;
+        object.add(board);
+      });
+
+      // The binding skin sits over the page block. Rounded volumes use a
+      // cylindrical spine; cloth and buckram retain a flatter case profile.
+      if (profile.rounded) {
+        const spineGeometry = new THREE.CylinderGeometry(thickness / 2, thickness / 2, width, 20, 1, false);
+        disposableGeometries.push(spineGeometry);
+        const spine = new THREE.Mesh(spineGeometry, bindingMaterial);
+        spine.rotation.z = Math.PI / 2;
+        spine.scale.z = 0.3;
+        spine.position.z = depth / 2 + 0.005;
+        spine.castShadow = true;
+        spine.receiveShadow = true;
+        object.add(spine);
+      } else {
+        const spineGeometry = new THREE.BoxGeometry(width, thickness - 0.018, 0.115);
+        disposableGeometries.push(spineGeometry);
+        const spine = new THREE.Mesh(spineGeometry, bindingMaterial);
+        spine.position.z = depth / 2 + 0.012;
+        spine.castShadow = true;
+        spine.receiveShadow = true;
+        object.add(spine);
+      }
+
+      if (profile.kind === "half-leather") {
+        const clothTextures = makeBindingTextures(record.color, "cloth", profile.seed + 17);
+        const clothMaterial = pbrMaterial(clothTextures, { bumpScale: 0.016, roughness: 0.95 });
+        disposableMaterials.push(clothMaterial);
+        const panelGeometry = new THREE.BoxGeometry(width * 0.58, boardThickness + 0.009, depth + 0.052);
+        disposableGeometries.push(panelGeometry);
+        [-1, 1].forEach((side) => {
+          const panel = new THREE.Mesh(panelGeometry, clothMaterial);
+          panel.position.set(width * 0.07, side * (thickness / 2 - boardThickness / 2), 0);
+          panel.castShadow = true;
+          object.add(panel);
+        });
+      }
+
+      for (let band = 0; band < profile.bands; band += 1) {
+        const bandGeometry = new THREE.BoxGeometry(0.036, thickness - 0.012, 0.035);
+        disposableGeometries.push(bandGeometry);
+        const bandMesh = new THREE.Mesh(bandGeometry, bindingMaterial);
+        bandMesh.position.set(-width * 0.3 + band * (width * 0.6 / Math.max(1, profile.bands - 1)), 0, depth / 2 + 0.075);
+        bandMesh.castShadow = true;
+        object.add(bandMesh);
+      }
+
+      stackBooks.push({ object, width, thickness, depth, homeX: object.position.x, profile, bindingMaterial });
     });
 
-    mesh(new THREE.BoxGeometry(4.5, 0.24, 2.85), materials.darkWood, { position: [4.25, -0.1, 0.66] });
+    mesh(new THREE.BoxGeometry(4.62, 0.24, 2.85), materials.darkWood, { position: [4.45, -0.1, 0.66] });
   }
 
   function projectPoint(point) {
@@ -446,11 +780,13 @@ export function createStudyScene(records, onLayout) {
   }
 
   function updateDomLayout() {
+    // DOM surfaces receive only projected physical bounds. Paper color and
+    // binding shape stay in WebGL so typography cannot become a floating card.
     const bookCorners = [
-      new THREE.Vector3(-BOOK_WIDTH / 2 + 0.12, BOOK_HEIGHT / 2 - 0.12, 0.36),
-      new THREE.Vector3(BOOK_WIDTH / 2 - 0.12, BOOK_HEIGHT / 2 - 0.12, 0.36),
-      new THREE.Vector3(BOOK_WIDTH / 2 - 0.12, -BOOK_HEIGHT / 2 + 0.12, 0.36),
-      new THREE.Vector3(-BOOK_WIDTH / 2 + 0.12, -BOOK_HEIGHT / 2 + 0.12, 0.36)
+      new THREE.Vector3(-BOOK_WIDTH / 2 + 0.16, BOOK_HEIGHT / 2 - 0.15, 0.43),
+      new THREE.Vector3(BOOK_WIDTH / 2 - 0.16, BOOK_HEIGHT / 2 - 0.15, 0.43),
+      new THREE.Vector3(BOOK_WIDTH / 2 - 0.16, -BOOK_HEIGHT / 2 + 0.16, 0.4),
+      new THREE.Vector3(-BOOK_WIDTH / 2 + 0.16, -BOOK_HEIGHT / 2 + 0.16, 0.4)
     ].map((point) => bookGroup.localToWorld(point));
 
     const spineBounds = stackBooks.map(({ object, width, thickness, depth }) => {
@@ -494,18 +830,22 @@ export function createStudyScene(records, onLayout) {
     cameraTarget.x = camera.position.x;
     camera.lookAt(cameraTarget);
     camera.updateProjectionMatrix();
-    renderer.render(scene, camera);
+    render();
     updateDomLayout();
   }
 
   function setSelected(index, { animate = true } = {}) {
     cancelAnimationFrame(selectionFrame);
     const starts = stackBooks.map(({ object }) => object.position.x);
-    const targets = stackBooks.map(({ homeX }, recordIndex) => homeX + (recordIndex === index ? -0.28 : 0));
+    const targets = stackBooks.map(({ homeX }, recordIndex) => homeX + (recordIndex === index ? -0.32 : 0));
+    const selectedBook = stackBooks[index];
+    openCoverMeshes.forEach((cover) => { cover.material = selectedBook.bindingMaterial; });
 
     if (!animate) {
       stackBooks.forEach(({ object }, recordIndex) => { object.position.x = targets[recordIndex]; });
-      renderer.render(scene, camera);
+      turningLeaf.visible = false;
+      turningLeaf.rotation.y = 0;
+      render();
       updateDomLayout();
       return;
     }
@@ -513,22 +853,34 @@ export function createStudyScene(records, onLayout) {
     // Each request owns one short animation frame loop. A newer selection
     // cancels this loop and retargets from the current positions, so movement
     // can never queue or restore stale project state.
+    turningLeaf.visible = true;
+    turningLeaf.rotation.y = 0;
     const startedAt = performance.now();
     function animateSelection(now) {
-      const progress = Math.min(1, (now - startedAt) / 180);
+      const progress = Math.min(1, (now - startedAt) / 280);
       const eased = 1 - Math.pow(1 - progress, 3);
       stackBooks.forEach(({ object }, recordIndex) => {
         object.position.x = THREE.MathUtils.lerp(starts[recordIndex], targets[recordIndex], eased);
       });
-      renderer.render(scene, camera);
+      const lift = Math.sin(progress * Math.PI);
+      turningLeaf.rotation.y = -lift * 0.16;
+      turningLeaf.position.z = 0.49 + lift * 0.19;
+      render();
       updateDomLayout();
       if (progress < 1) selectionFrame = requestAnimationFrame(animateSelection);
-      else selectionFrame = 0;
+      else {
+        turningLeaf.visible = false;
+        turningLeaf.rotation.y = 0;
+        turningLeaf.position.z = 0.49;
+        selectionFrame = 0;
+        render();
+      }
     }
     selectionFrame = requestAnimationFrame(animateSelection);
   }
 
   function dispose() {
+    disposed = true;
     window.removeEventListener("resize", resize);
     cancelAnimationFrame(selectionFrame);
     disposableGeometries.forEach((geometry) => geometry.dispose());
@@ -541,5 +893,15 @@ export function createStudyScene(records, onLayout) {
   window.addEventListener("resize", resize, { passive: true });
   resize();
 
-  return { setSelected, resize, dispose };
+  function getDiagnostics() {
+    return {
+      renderCount,
+      pixelRatio: renderer.getPixelRatio(),
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+      selectionAnimating: selectionFrame !== 0
+    };
+  }
+
+  return { setSelected, resize, dispose, getDiagnostics };
 }

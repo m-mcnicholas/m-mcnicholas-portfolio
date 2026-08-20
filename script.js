@@ -1,4 +1,5 @@
 import { createStudyScene } from "./scene.js";
+import { getBindingProfile } from "./bindings.js";
 
 const desktopQuery = window.matchMedia("(min-width: 1100px) and (min-height: 650px)");
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -17,7 +18,8 @@ function readRecords() {
       summary: element.querySelector(".record-summary")?.textContent.trim() || "",
       details: element.querySelector(".record-details")?.textContent.trim() || "",
       href: link?.getAttribute("href") || "",
-      linkText: link?.textContent.trim() || "Open project"
+      linkText: link?.textContent.trim() || "Open project",
+      binding: element.dataset.binding || ""
     };
   });
 }
@@ -27,10 +29,13 @@ function createSpineControls(records) {
   if (!container) return [];
 
   return records.map((record, index) => {
+    const binding = getBindingProfile(record, index);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "spine-control";
     button.dataset.recordIndex = String(index);
+    button.dataset.binding = binding.kind;
+    button.dataset.foil = binding.foil;
     button.setAttribute("aria-pressed", String(index === 0));
     button.setAttribute("aria-controls", "reading-book");
     button.setAttribute("aria-label", `Read ${record.title}, ${record.date}`);
@@ -110,7 +115,7 @@ async function initializeDesktopStudy() {
 
     function handleContextLoss(event) {
       event.preventDefault();
-      readingBook.getAnimations().forEach((animation) => animation.cancel());
+      readingBook.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       scene.dispose();
       window.__portfolioScene = null;
       spineControls.forEach((button) => button.remove());
@@ -123,6 +128,7 @@ async function initializeDesktopStudy() {
     function selectRecord(requestedIndex, options = {}) {
       const index = Math.max(0, Math.min(records.length - 1, requestedIndex));
       const record = records[index];
+      const binding = getBindingProfile(record, index);
       selectedIndex = index;
 
       spineControls.forEach((button, buttonIndex) => {
@@ -134,6 +140,9 @@ async function initializeDesktopStudy() {
       fields.date.textContent = record.date;
       fields.summary.textContent = record.summary;
       fields.details.textContent = record.details;
+      readingBook.dataset.binding = binding.kind;
+      readingBook.dataset.foil = binding.foil;
+      readingBook.style.setProperty("--selected-binding", record.color);
 
       if (record.href) {
         fields.link.hidden = false;
@@ -145,15 +154,17 @@ async function initializeDesktopStudy() {
       }
 
       scene.setSelected(index, { animate: options.animate !== false && !reducedMotionQuery.matches });
-      readingBook.getAnimations().forEach((animation) => animation.cancel());
+      readingBook.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       if (options.animate !== false && !reducedMotionQuery.matches) {
-        readingBook.animate(
-          [
-            { opacity: 0.78, transform: "translateY(5px) scale(0.992)" },
-            { opacity: 1, transform: "translateY(0) scale(1)" }
-          ],
-          { duration: 180, easing: "cubic-bezier(.2,.72,.25,1)" }
-        );
+        readingBook.querySelectorAll(".reading-page").forEach((page, pageIndex) => {
+          page.animate(
+            [
+              { opacity: 0.62, transform: `translateY(${pageIndex ? 3 : 2}px)` },
+              { opacity: 1, transform: "translateY(0)" }
+            ],
+            { duration: 240, easing: "cubic-bezier(.2,.72,.25,1)" }
+          );
+        });
       }
       document.title = index === 0
         ? "Michael McNicholas — Project Archive"

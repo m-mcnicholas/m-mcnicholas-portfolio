@@ -10,7 +10,7 @@ Project content is stored once: as a semantic `<article class="project-record">`
 4. Replace every field described below.
 5. Add the finished work to the repository or use its deployed URL.
 6. Run `npm run build` and `npm run test:e2e`.
-7. Inspect the new spine, selected book, archive card, phone layout, and destination.
+7. Inspect the new spine, selected book, archive ledger page, phone layout, and destination.
 
 No existing book position or coordinate should be edited. `scene.js` recalculates every stack level from record count and order.
 
@@ -20,7 +20,8 @@ No existing book position or coordinate should be edited. `scene.js` recalculate
 <article class="project-record"
   data-kind="project"
   data-color="#355c51"
-  data-accent="#e5cc83">
+  data-accent="#e5cc83"
+  data-binding="cloth">
   <p class="record-type">School project · Category</p>
   <h2>Project title</h2>
   <time datetime="2026-06-01">June 1, 2026</time>
@@ -35,9 +36,10 @@ No existing book position or coordinate should be edited. `scene.js` recalculate
 | Field | Required | Used by |
 | --- | --- | --- |
 | `data-kind="project"` | Yes | Distinguishes projects from the initial information volume |
-| `data-color` | Yes | Procedural cloth texture and archive-card edge |
+| `data-color` | Yes | Generated leather/cloth color and selected reading-book cover |
 | `data-accent` | Yes | Spine rules and dates; use a light color with strong contrast |
-| `.record-type` | Yes | Open-page classification and archive card |
+| `data-binding` | No | Overrides deterministic construction with `calf`, `cloth`, `buckram`, or `half-leather` |
+| `.record-type` | Yes | Open-page classification and archive ledger page |
 | `<h2>` | Yes | Spine, selected page, archive, accessible name, and browser title |
 | `<time datetime>` | Yes | Visible spine/page/archive date and machine-readable chronology |
 | `.record-summary` | Yes | Main project goal on the page and in the archive |
@@ -46,11 +48,13 @@ No existing book position or coordinate should be edited. `scene.js` recalculate
 
 Keep titles near 30 characters where practical and keep selected-page copy concise enough to fit without scrolling at 1280 × 720.
 
+When `data-binding` is omitted, `bindings.js` hashes the title, date, and kind to produce a stable binding kind, thickness, width, depth, spine profile, band count, foil treatment, alignment, and wear. Reordering the record does not change that identity. Use an override only when a particular construction is editorially important; color remains supplied by `data-color`.
+
 ## Chronology and capacity
 
 The information record must remain first. Project records are manually ordered newest to oldest using their `<time datetime>` values. The first project rests immediately below the information volume; the oldest rests at the bottom.
 
-The current scene is verified with seven volumes total and with an automated eight-volume fixture. The procedural stack supports up to ten volumes at 1280 × 720, but after adding content always verify that every label remains visible and readable.
+The current scene is verified with seven volumes total and with an automated eight-volume fixture. Stack height is cumulative because each generated binding has a meaningful thickness. The procedural stack supports up to ten volumes at 1280 × 720, but after adding content always verify that every label remains visible and readable.
 
 ## Destinations and assets
 

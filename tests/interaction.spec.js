@@ -32,7 +32,7 @@ test("the newest rapid selection wins without a queue", async ({ page }) => {
   await expect(page.locator(".spine-control[aria-pressed='true']")).toHaveCount(1);
   await expect(page.locator(".spine-control").nth(3)).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#selected-link")).toBeVisible();
-  await page.waitForTimeout(220);
+  await page.waitForTimeout(320);
   await expect(page.locator("#selected-title")).toHaveText("Climate Data Portrait");
 });
 
@@ -79,12 +79,34 @@ test("keyboard focus has a visible non-color outline", async ({ page }) => {
   expect(outline.width).toBeGreaterThanOrEqual(3);
 });
 
+test("Tab reaches the archive ribbon and physical volume controls", async ({ page }) => {
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".skip-link")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator("#show-archive")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".spine-control").first()).toBeFocused();
+});
+
 test("reduced motion keeps selection immediate and animation-free", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);
   await page.locator(".spine-control").nth(4).click();
   await expect(page.locator("#selected-title")).toHaveText("Interactive Story");
-  const activeAnimations = await page.locator("#reading-book").evaluate((element) => element.getAnimations().length);
+  const activeAnimations = await page.locator("#reading-book").evaluate((element) => element.getAnimations({ subtree: true }).length);
   expect(activeAnimations).toBe(0);
+});
+
+test("semantic spines share deterministic physical binding profiles", async ({ page }) => {
+  const profiles = await page.locator(".spine-control").evaluateAll((controls) => controls.map((control) => ({
+    binding: control.dataset.binding,
+    foil: control.dataset.foil,
+    background: getComputedStyle(control).backgroundColor
+  })));
+  expect(new Set(profiles.map(({ binding }) => binding)).size).toBeGreaterThanOrEqual(3);
+  expect(profiles.every(({ binding, foil }) => binding && foil)).toBe(true);
+  expect(profiles.every(({ background }) => background === "rgba(0, 0, 0, 0)" || background === "transparent")).toBe(true);
+  const pageBackgrounds = await page.locator(".reading-page").evaluateAll((pages) => pages.map((page) => getComputedStyle(page).backgroundColor));
+  expect(pageBackgrounds.every((background) => background === "rgba(0, 0, 0, 0)" || background === "transparent")).toBe(true);
 });
