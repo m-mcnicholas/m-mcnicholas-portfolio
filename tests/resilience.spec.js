@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installProjectFixtures } from "./project-fixtures.js";
 
 test("a forced WebGL initialization failure leaves only the archive", async ({ page }) => {
   await page.addInitScript(() => {
@@ -12,7 +13,7 @@ test("a forced WebGL initialization failure leaves only the archive", async ({ p
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
   await expect(page.locator("html")).not.toHaveClass(/webgl-ready/);
-  await expect(page.locator(".project-record")).toHaveCount(7);
+  await expect(page.locator(".project-record")).toHaveCount(1);
 });
 
 test("a narrow desktop receives the complete archive instead of a squeezed room", async ({ page }) => {
@@ -20,10 +21,11 @@ test("a narrow desktop receives the complete archive instead of a squeezed room"
   await page.goto("/");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(6);
+  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(0);
 });
 
 test("a lost WebGL context switches back to the semantic archive", async ({ page }) => {
+  await installProjectFixtures(page);
   await page.goto("/");
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);
   await page.locator("#scene-canvas canvas").dispatchEvent("webglcontextlost");
@@ -43,35 +45,35 @@ test("one added semantic record automatically reaches every presentation", async
         <time datetime="2026-06-01">June 1, 2026</time>
         <p class="record-summary">Confirm every portfolio presentation derives from one semantic record.</p>
         <p class="record-details">This record exists only inside the automated response fixture.</p>
-        <a href="examples/index.html#algorithmic-garden">Open temporary project</a>
+        <a href="test-project.html#temporary">Open temporary project</a>
       </article>`;
-    html = html.replace('<article class="project-record"\n          data-kind="project"', `${fixture}\n        <article class="project-record"\n          data-kind="project"`);
+    html = html.replace('<p class="empty-archive">No projects have been added yet.</p>', fixture);
     await route.fulfill({ response, body: html });
   });
 
   await page.goto("/");
-  await expect(page.locator(".project-record")).toHaveCount(8);
-  await expect(page.locator(".spine-control")).toHaveCount(8);
+  await expect(page.locator(".project-record")).toHaveCount(2);
+  await expect(page.locator(".spine-control")).toHaveCount(2);
   await expect(page.locator(".spine-control").nth(1)).toContainText("Temporary Project");
   await page.locator(".spine-control").nth(1).click();
   await expect(page.locator("#selected-title")).toHaveText("Temporary Project");
-  await expect(page.locator("#selected-link")).toHaveAttribute("href", "examples/index.html#algorithmic-garden");
+  await expect(page.locator("#selected-link")).toHaveAttribute("href", "test-project.html#temporary");
 });
 
 test("ten volumes remain simultaneously visible without manual coordinates", async ({ page }) => {
   await page.route("**/", async (route) => {
     const response = await route.fetch();
     let html = await response.text();
-    const fixtures = ["Compiler Notebook", "Robotics Log", "API Field Guide"].map((title, index) => `
+    const fixtures = Array.from({ length: 9 }, (_, index) => `
       <article class="project-record" data-kind="project" data-color="#4b6152" data-accent="#ead595">
         <p class="record-type">Maximum stack fixture</p>
-        <h2>${title}</h2>
-        <time datetime="2026-0${8 - index}-01">${["August", "July", "June"][index]} 1, 2026</time>
+        <h2>Stack Project ${index + 1}</h2>
+        <time datetime="2026-01-${String(index + 1).padStart(2, "0")}">January ${index + 1}, 2026</time>
         <p class="record-summary">A temporary record used to verify the supported ten-volume stack.</p>
         <p class="record-details">This content exists only in the automated browser response.</p>
-        <a href="examples/index.html#algorithmic-garden">Open fixture</a>
+        <a href="test-project.html#stack-${index + 1}">Open fixture</a>
       </article>`).join("");
-    html = html.replace('<article class="project-record"\n          data-kind="project"', `${fixtures}\n        <article class="project-record"\n          data-kind="project"`);
+    html = html.replace('<p class="empty-archive">No projects have been added yet.</p>', fixtures);
     await route.fulfill({ response, body: html });
   });
 

@@ -62,7 +62,7 @@ Use a real, reachable destination. Relative project URLs are preferred for work 
 
 Store optional images, models, or textures under a clearly named repository folder such as `assets/`. Reference module assets from JavaScript with `new URL("./assets/name.webp", import.meta.url)` so Vite rewrites production paths. Optional visuals must have a fallback and must never contain the only copy of project text or navigation.
 
-The six current projects are clearly labeled examples. Replace them with authoritative project content as real work is completed.
+The archive begins empty. Add authoritative project content as work is completed.
 
 ## Release check
 

@@ -54,7 +54,7 @@ async function initializeDesktopStudy() {
   document.documentElement.dataset.webglAttempted = "true";
 
   const records = readRecords();
-  if (records.length < 2 || records.some((record) => !record.title || !record.date || !record.summary)) return;
+  if (records.length < 1 || records.some((record) => !record.title || !record.date || !record.summary)) return;
 
   // Give the renderer a full-size but invisible stage so textures and projected
   // semantic controls settle before the fallback is replaced on screen.

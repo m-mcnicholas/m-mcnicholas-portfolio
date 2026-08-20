@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { installProjectFixtures } from "./project-fixtures.js";
 
 test.beforeEach(async ({ page }) => {
+  await installProjectFixtures(page);
   await page.goto("/");
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);
 });
@@ -17,7 +19,7 @@ test("every spine selects the matching project immediately", async ({ page }) =>
     await expect(page.locator("#selected-title")).toHaveText(expectedTitle);
     await expect(page.locator("#selected-date")).toHaveText(expectedDate);
     await expect(page.locator("#selection-status")).toContainText(`Now reading ${expectedTitle}`);
-    if (index > 0) await expect(page.locator("#selected-link")).toHaveAttribute("href", /examples\/index\.html#/);
+    if (index > 0) await expect(page.locator("#selected-link")).toHaveAttribute("href", /test-project\.html#/);
   }
 });
 
@@ -28,12 +30,12 @@ test("the newest rapid selection wins without a queue", async ({ page }) => {
   await page.locator(".spine-control").nth(6).click();
   await page.locator(".spine-control").nth(3).click();
 
-  await expect(page.locator("#selected-title")).toHaveText("Climate Data Portrait");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project Three");
   await expect(page.locator(".spine-control[aria-pressed='true']")).toHaveCount(1);
   await expect(page.locator(".spine-control").nth(3)).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#selected-link")).toBeVisible();
   await page.waitForTimeout(320);
-  await expect(page.locator("#selected-title")).toHaveText("Climate Data Portrait");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project Three");
 });
 
 test("arrow, Home, End, Enter, and Space use semantic controls", async ({ page }) => {
@@ -41,15 +43,15 @@ test("arrow, Home, End, Enter, and Space use semantic controls", async ({ page }
   await controls.first().focus();
   await page.keyboard.press("End");
   await expect(controls.last()).toBeFocused();
-  await expect(page.locator("#selected-title")).toHaveText("Personal Landing Page");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project Six");
   await page.keyboard.press("Home");
   await expect(controls.first()).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(controls.nth(1)).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator("#selected-title")).toHaveText("Algorithmic Garden");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project One");
   await page.keyboard.press("Space");
-  await expect(page.locator("#selected-title")).toHaveText("Algorithmic Garden");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project One");
 });
 
 test("the diegetic catalogue card switches to the archive and back", async ({ page }) => {
@@ -64,8 +66,7 @@ test("the diegetic catalogue card switches to the archive and back", async ({ pa
 test("the selected destination is a real navigable link", async ({ page }) => {
   await page.locator(".spine-control").nth(1).click();
   await page.locator("#selected-link").click();
-  await expect(page).toHaveURL(/examples\/index\.html#algorithmic-garden$/);
-  await expect(page.locator("#algorithmic-garden h1")).toHaveText("Algorithmic Garden");
+  await expect(page).toHaveURL(/test-project\.html#project-1$/);
 });
 
 test("keyboard focus has a visible non-color outline", async ({ page }) => {
@@ -93,7 +94,7 @@ test("reduced motion keeps selection immediate and animation-free", async ({ pag
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);
   await page.locator(".spine-control").nth(4).click();
-  await expect(page.locator("#selected-title")).toHaveText("Interactive Story");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project Four");
   const activeAnimations = await page.locator("#reading-book").evaluate((element) => element.getAnimations({ subtree: true }).length);
   expect(activeAnimations).toBe(0);
 });

@@ -27,7 +27,7 @@ npm run build
 npm run preview
 ```
 
-Deploy the contents of `dist/`. Vite uses relative production asset URLs, so the output can be hosted at a domain root or a nested static-hosting path. Both the portfolio and `examples/index.html` are production build inputs.
+Deploy the contents of `dist/`. Vite uses relative production asset URLs, so the output can be hosted at a domain root or a nested static-hosting path.
 
 Run the rendered browser checks:
 
@@ -45,9 +45,8 @@ npm run test:e2e
 | `scene.js` | Three.js camera, room, practical lighting, multi-channel procedural materials, book geometry, projected DOM layout, interruptible physical motion, and GPU cleanup |
 | `bindings.js` | Stable project-to-binding profiles shared by the Three.js volumes and semantic spine controls |
 | `styles.css` | Ledger fallback, transparent page typography, physical spine controls, mode switching, focus states, and responsive/reduced-motion rules |
-| `examples/` | Local example destinations used until real projects replace the sample records |
 | `tests/` | Playwright checks for composition, interaction, no-JavaScript behavior, responsiveness, maintainability, and WebGL recovery |
-| `vite.config.js` | Relative deployment paths and multi-page production inputs |
+| `vite.config.js` | Relative deployment paths and the production entry point |
 
 Three.js `0.180.0` is installed locally through npm and bundled by Vite. The released site has no CDN, remote font, or remote texture dependency. Most material maps are generated locally during scene initialization at 256–512px and disposed with the renderer. Two 1024px generated albedos (about 633kB total) are bundled under `assets/textures/` for walnut and rag paper.
 
@@ -71,7 +70,7 @@ See [ADDING_PROJECTS.md](ADDING_PROJECTS.md) for the exact entry contract and wo
 
 The enhanced room is enabled only at `1100px` wide or larger and at least `650px` tall. Smaller viewports use the archive instead of squeezing the room.
 
-The Three.js perspective camera uses a shallow elevated reading sightline (a responsive `32–35°` field of view, positioned around `(0, 4.08, 14.4)` and aimed near `(0, 2.62, 0.18)`). Pages are modeled in an upright X/Y plane on a lectern. Aspect-ratio breakpoints shift the lectern into available left space and slightly open/recenter the camera on taller laptop screens, preserving a measured gutter before the selected spine. At 1280 × 720 the projected semantic page overlay remains between 55% and 65% of viewport width, while all seven current spine labels remain exposed.
+The Three.js perspective camera uses a shallow elevated reading sightline (a responsive `32–35°` field of view, positioned around `(0, 4.08, 14.4)` and aimed near `(0, 2.62, 0.18)`). Pages are modeled in an upright X/Y plane on a lectern. Aspect-ratio breakpoints shift the lectern into available left space and slightly open/recenter the camera on taller laptop screens, preserving a measured gutter before the selected spine.
 
 Important scene logic lives in `scene.js`:
 

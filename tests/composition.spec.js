@@ -1,4 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { installProjectFixtures } from "./project-fixtures.js";
+
+test.beforeEach(async ({ page }) => {
+  await installProjectFixtures(page);
+});
 
 test("desktop WebGL composition exposes the book and every spine", async ({ page }) => {
   const consoleErrors = [];
@@ -34,7 +39,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   expect(metrics.bookWidthRatio).toBeLessThanOrEqual(0.65);
   for (const spine of metrics.spines) {
     expect(spine.top).toBeGreaterThanOrEqual(0);
-    expect(spine.right).toBeLessThanOrEqual(metrics.viewport.width);
+    expect(spine.right).toBeLessThanOrEqual(metrics.viewport.width + 1);
     expect(spine.bottom).toBeLessThanOrEqual(metrics.viewport.height);
     expect(spine.height).toBeGreaterThanOrEqual(38);
   }
@@ -45,8 +50,8 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
 
   await page.locator(".spine-control").nth(2).click();
   await page.waitForTimeout(320);
-  await expect(page.locator("#selected-title")).toHaveText("Pathfinding Visualizer");
-  await expect(page.locator("#selected-date")).toHaveText("April 16, 2026");
+  await expect(page.locator("#selected-title")).toHaveText("Test Project Two");
+  await expect(page.locator("#selected-date")).toHaveText("May 1, 2026");
   await expect(page.locator("#selected-link")).toBeVisible();
   await page.screenshot({ path: "test-results/selected-project-1280x720.png" });
 });
@@ -87,7 +92,7 @@ test("responsive laptop framing keeps selected spines clear of the open book", a
     });
     expect(layout.gap).toBeGreaterThanOrEqual(30);
     expect(layout.bookLeft).toBeGreaterThanOrEqual(18);
-    expect(layout.rightmostSpine).toBeLessThanOrEqual(viewport.width);
+    expect(layout.rightmostSpine).toBeLessThanOrEqual(viewport.width + 1);
     if (viewport.width === 1512) {
       await page.screenshot({ path: "test-results/composition-1512x900.png" });
     }

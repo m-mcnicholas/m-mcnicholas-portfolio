@@ -8,8 +8,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        portfolio: resolve(import.meta.dirname, "index.html"),
-        examples: resolve(import.meta.dirname, "examples/index.html")
+        portfolio: resolve(import.meta.dirname, "index.html")
       }
     }
   }

@@ -69,9 +69,9 @@ The final production build and Playwright Chromium checks were run against the V
 
 | Check | Observed result |
 | --- | --- |
-| Production build | Both `index.html` and `examples/index.html` emitted with bundled local Three.js |
-| No JavaScript | Study hidden; information plus six complete projects and all six links visible |
-| Phone width | Archive shown; six projects available; document width equals viewport width |
+| Production build | `index.html` emitted with bundled local Three.js |
+| No JavaScript | Study hidden; semantic archive and its current project records remain visible |
+| Phone width | Archive shown; document width equals viewport width |
 | JavaScript-enabled phone | Archive remains primary; desktop room is not initialized |
 | 1280 × 720 composition | Open book measured 55.8% of viewport width; all seven spines inside viewport and at least 38px high |
 | Laptop framing | 1280 × 720, 1440 × 900, and 1512 × 900 kept the open book and every spine inside the viewport with at least a 30px semantic gutter |

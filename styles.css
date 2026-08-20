@@ -575,6 +575,15 @@ a { color: inherit; }
 .information-record .record-summary { grid-column: summary / link; }
 .information-record .record-details { grid-column: 1 / -1; }
 
+.empty-archive {
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+  border: 1px dashed #b89c6e;
+  color: #e8d9b8;
+  font: italic 1rem/1.5 var(--serif);
+  text-align: center;
+}
+
 .return-to-study {
   display: inline-block;
   margin-top: 2.5rem;
