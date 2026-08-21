@@ -67,6 +67,7 @@ export function createStudyScene(records, onLayout) {
   const stackBooks = [];
   const openCoverMeshes = [];
   let turningLeaf;
+  let archiveDrawerLocal;
   let selectionFrame = 0;
   let renderCount = 0;
   let disposed = false;
@@ -587,6 +588,25 @@ export function createStudyScene(records, onLayout) {
     board.receiveShadow = true;
     group.add(board);
 
+    // A slim brass frame around the exposed margin (the board is larger than
+    // the book it holds) reads as a finished picture/lectern panel instead of
+    // bare plywood, echoing the brass already used on the lamp and inkwell.
+    const boardFrameZ = board.position.z + boardGeometry.parameters.depth / 2 + 0.02;
+    const boardFrameThickness = 0.11;
+    [
+      [8.55, boardFrameThickness, 0, 2.5 - boardFrameThickness / 2],
+      [8.55, boardFrameThickness, 0, -(2.5 - boardFrameThickness / 2)],
+      [boardFrameThickness, 5.0, 4.275 - boardFrameThickness / 2, 0],
+      [boardFrameThickness, 5.0, -(4.275 - boardFrameThickness / 2), 0]
+    ].forEach(([width, height, x, y]) => {
+      const stripGeometry = new THREE.BoxGeometry(width, height, 0.05);
+      disposableGeometries.push(stripGeometry);
+      const strip = new THREE.Mesh(stripGeometry, materials.brass);
+      strip.position.set(x, y, boardFrameZ);
+      strip.castShadow = false;
+      group.add(strip);
+    });
+
     const ledgeGeometry = new THREE.BoxGeometry(8.8, 0.3, 0.68);
     disposableGeometries.push(ledgeGeometry);
     const ledge = new THREE.Mesh(ledgeGeometry, materials.wood);
@@ -594,13 +614,96 @@ export function createStudyScene(records, onLayout) {
     ledge.castShadow = true;
     group.add(ledge);
 
-    const supportGeometry = new THREE.BoxGeometry(2.2, 2.2, 0.35);
-    disposableGeometries.push(supportGeometry);
-    const support = new THREE.Mesh(supportGeometry, materials.darkWood);
-    support.position.set(0, -3.1, -0.25);
-    support.rotation.z = Math.PI / 4;
-    support.castShadow = true;
-    group.add(support);
+    // The desk surface sits only ~0.25 units below the ledge, so the previous
+    // support (a single box rotated into a diamond) had to be oversized to
+    // clear the desktop at all; half of it was buried inside the tabletop and
+    // only its upper point ever read on screen. A shallow plinth spanning the
+    // ledge's footprint, with two corner feet that project forward past the
+    // ledge's own front edge, gives the base a real silhouette within that
+    // same tight gap instead of a floating rotated block.
+    // The plinth uses the lighter wood (not the board's dark wood) because
+    // this whole shelf sits directly against the desk's dark leather blotter;
+    // a dark-on-dark base was invisible here in practice, reading as nothing
+    // more than a stray brass highlight.
+    const plinthGeometry = new THREE.BoxGeometry(8.3, 0.34, 0.56);
+    disposableGeometries.push(plinthGeometry);
+    const plinth = new THREE.Mesh(plinthGeometry, materials.wood);
+    plinth.position.set(0, -2.62, 0.14);
+    plinth.castShadow = true;
+    plinth.receiveShadow = true;
+    group.add(plinth);
+
+    const plinthCapGeometry = new THREE.BoxGeometry(8.34, 0.04, 0.58);
+    disposableGeometries.push(plinthCapGeometry);
+    const plinthCap = new THREE.Mesh(plinthCapGeometry, materials.brass);
+    plinthCap.position.set(0, -2.45, 0.14);
+    plinthCap.castShadow = false;
+    group.add(plinthCap);
+
+    // The feet don't need their own brass cap: the plinth cap above already
+    // spans their width, so the accent line still crosses them without a
+    // second, redundant strip at each corner.
+    const footGeometry = new THREE.BoxGeometry(0.62, 0.34, 0.74);
+    disposableGeometries.push(footGeometry);
+    [-1, 1].forEach((side) => {
+      const foot = new THREE.Mesh(footGeometry, materials.wood);
+      foot.position.set(side * 3.85, -2.62, 0.32);
+      foot.castShadow = true;
+      foot.receiveShadow = true;
+      group.add(foot);
+    });
+
+    // The catalogue drawer was originally set into the desk's own front
+    // apron, but that surface sits far enough toward the camera (world z
+    // ~5.3) that it projects below the visible canvas at this focal length —
+    // a screenshot caught it rendering entirely off-screen. The lectern's own
+    // plinth is already inside the visible, well-lit frame, so the drawer
+    // (dark front panel, brass escutcheon and knob) is built into its front
+    // face instead, between the two corner feet.
+    const plinthFrontZ = plinth.position.z + plinthGeometry.parameters.depth / 2;
+    const drawerFrontGeometry = new THREE.BoxGeometry(4.3, 0.24, 0.12);
+    disposableGeometries.push(drawerFrontGeometry);
+    const drawerFront = new THREE.Mesh(drawerFrontGeometry, materials.darkWood);
+    drawerFront.position.set(0, -2.62, plinthFrontZ + 0.06);
+    drawerFront.castShadow = true;
+    drawerFront.receiveShadow = true;
+    group.add(drawerFront);
+    const drawerFrontFaceZ = drawerFront.position.z + drawerFrontGeometry.parameters.depth / 2;
+
+    const escutcheonGeometry = new THREE.BoxGeometry(0.34, 0.17, 0.03);
+    disposableGeometries.push(escutcheonGeometry);
+    const escutcheon = new THREE.Mesh(escutcheonGeometry, materials.brass);
+    escutcheon.position.set(0, -2.62, drawerFrontFaceZ + 0.015);
+    escutcheon.castShadow = false;
+    group.add(escutcheon);
+
+    // No DOM caption sits on the drawer any more (a "click here" sentence
+    // read as a UI label pasted over the scene, not part of it); a warm,
+    // faintly emissive knob is the invitation instead — sized up slightly
+    // from a plain hardware knob so it reads as something meant to be
+    // pulled, and glowing enough to catch the eye against the dark front.
+    const drawerKnobMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd6a552,
+      roughness: 0.4,
+      metalness: 0.5,
+      emissive: 0xffa940,
+      emissiveIntensity: 1.35
+    });
+    disposableMaterials.push(drawerKnobMaterial);
+    const drawerKnobGeometry = new THREE.CylinderGeometry(0.085, 0.105, 0.07, 20);
+    disposableGeometries.push(drawerKnobGeometry);
+    const drawerKnob = new THREE.Mesh(drawerKnobGeometry, drawerKnobMaterial);
+    drawerKnob.position.set(0, -2.62, drawerFrontFaceZ + 0.065);
+    drawerKnob.rotation.x = Math.PI / 2;
+    drawerKnob.castShadow = true;
+    group.add(drawerKnob);
+
+    archiveDrawerLocal = {
+      y: drawerFront.position.y,
+      width: drawerFrontGeometry.parameters.width,
+      height: drawerFrontGeometry.parameters.height,
+      frontZ: drawerFrontFaceZ
+    };
 
     // A soft contact patch strengthens the book/lectern junction without an
     // integrated-GPU post-processing pass.
@@ -874,7 +977,18 @@ export function createStudyScene(records, onLayout) {
       ]);
     });
 
-    onLayout({ book: projectRectangle(bookCorners), spines: spineBounds });
+    const drawerCorners = [
+      new THREE.Vector3(-archiveDrawerLocal.width / 2, archiveDrawerLocal.y + archiveDrawerLocal.height / 2, archiveDrawerLocal.frontZ),
+      new THREE.Vector3(archiveDrawerLocal.width / 2, archiveDrawerLocal.y + archiveDrawerLocal.height / 2, archiveDrawerLocal.frontZ),
+      new THREE.Vector3(archiveDrawerLocal.width / 2, archiveDrawerLocal.y - archiveDrawerLocal.height / 2, archiveDrawerLocal.frontZ),
+      new THREE.Vector3(-archiveDrawerLocal.width / 2, archiveDrawerLocal.y - archiveDrawerLocal.height / 2, archiveDrawerLocal.frontZ)
+    ].map((point) => bookGroup.localToWorld(point));
+
+    onLayout({
+      book: projectRectangle(bookCorners),
+      spines: spineBounds,
+      drawer: projectRectangle(drawerCorners)
+    });
   }
 
   function resize() {

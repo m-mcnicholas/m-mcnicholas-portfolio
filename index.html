@@ -10,11 +10,6 @@
   <script type="module" src="script.js"></script>
 </head>
 
-<!--
-  TO DO:
-    Make the archive thing an object instead of a card in a book.
--->
-
 <body>
   <a class="skip-link" href="#archive">Skip to the complete project archive</a>
 
@@ -50,15 +45,12 @@
       </article>
 
       <section class="volume-selector" aria-labelledby="volume-heading">
-        <!-- A desk object, not a page element: positioned against the
-             lectern's base rather than projected from the book or stack.
-             Kept before .spine-controls so tab order still reaches it
-             immediately after the skip link, ahead of the individual spines. -->
-        <a class="archive-drawer" id="show-archive" href="#archive">
-          <span>Catalogue drawer · No. 01</span>
-          <strong>Open the archive drawer</strong>
-          <small>All project records ↓</small>
-        </a>
+        <!-- A desk object, not a page element: sized and positioned to the
+             projected face of the 3D drawer front (see updateDomLayout in
+             scene.js), not to the page. Kept before .spine-controls so tab
+             order still reaches it immediately after the skip link, ahead of
+             the individual spines. -->
+        <a class="archive-drawer" id="show-archive" href="#archive" aria-label="Open the complete project archive"></a>
 
         <header class="shelf-label">
           <h2 id="volume-heading">Project volumes</h2>

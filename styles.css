@@ -237,86 +237,73 @@ a { color: inherit; }
   text-shadow: 0 0 0.35px #3c2b1e;
 }
 
-.destination-card,
-.archive-drawer {
+.destination-card {
   position: absolute;
   z-index: 2;
-  right: clamp(20px, 2.1vw, 32px);
-  left: clamp(20px, 2.1vw, 32px);
-  display: block;
-  padding: 9px 13px 18px;
-  text-decoration: none;
-  pointer-events: auto;
-}
-
-.destination-card {
   right: clamp(24px, 2.6vw, 42px);
   bottom: 115px;
   left: clamp(30px, 3vw, 48px);
+  display: block;
+  padding: 9px 13px 18px;
   border: 3px double #794c3fc4;
   background: #8d66530b;
   color: #5e332c;
+  text-decoration: none;
+  pointer-events: auto;
   transform: rotate(-0.28deg);
 }
 
 .destination-card[hidden] { display: none; }
 
-/* A small card-catalogue drawer front: the same object the mobile/no-JS
-   archive already uses (a drawer with a brass index holder), so the
-   desktop and mobile archives read as the same physical catalogue. Anchored
-   to the desk surface below the lectern rather than to the page, since a
-   drawer sitting on top of an open book would not read as a real object. */
+/* The drawer front, its brass escutcheon, and its glowing pull knob are real
+   geometry in the WebGL scene now (built into the lectern's own plinth in
+   scene.js) — the knob's own warm emissive material is what invites the
+   click, so this anchor carries no visible label of its own. It is only the
+   accessible hit target (see the aria-label) sized to the projected drawer
+   face, plus a soft hover/focus glow layered over that same knob position. */
 .archive-drawer {
-  right: auto;
-  bottom: 4%;
-  left: 30%;
-  width: clamp(150px, 15vw, 200px);
-  padding: 8px 12px 15px;
-  border: 1px solid #2a1a0f;
-  border-radius: 3px 3px 7px 7px;
-  background:
-    repeating-linear-gradient(90deg, #00000014 0 1px, transparent 1px 4px),
-    linear-gradient(165deg, #6b4a34, #432c1c 55%, #5c3d29);
-  box-shadow:
-    inset 0 1px #ffffff26,
-    inset 0 -2px #00000055,
-    0 3px 6px #00000066;
-  color: #f1dec0;
-  transform: rotate(0.2deg);
+  --drawer-left: 0px;
+  --drawer-top: 0px;
+  --drawer-width: 0px;
+  --drawer-height: 0px;
+  position: absolute;
+  z-index: 2;
+  top: var(--drawer-top);
+  left: var(--drawer-left);
+  width: var(--drawer-width);
+  height: var(--drawer-height);
+  padding: 0;
+  text-decoration: none;
+  pointer-events: auto;
 }
 
 .archive-drawer::after {
   content: "";
   position: absolute;
-  bottom: -8px;
+  top: 50%;
   left: 50%;
-  width: 18px;
-  height: 18px;
-  border: 1px solid #2a1a0f;
+  height: 320%;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #f0d999, #a9822f 55%, #5c4318 100%);
-  box-shadow: 0 2px 3px #00000090, inset 0 0 0 3px #6b4d2099;
-  transform: translateX(-50%);
+  background: radial-gradient(closest-side, #ffcf7a66, #ffcf7a00 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
 }
 
-.archive-drawer span {
-  display: inline-block;
-  margin-bottom: 6px;
-  padding: 2px 8px;
-  border: 1px solid #3d2a12;
-  border-radius: 2px;
-  background: linear-gradient(165deg, #ead8a0, #b8933f 55%, #8a6a2f);
-  box-shadow: inset 0 1px #fff6d866, inset 0 -1px #0000004d;
-  color: #241a0c;
-  font-size: clamp(0.4rem, 0.5vw, 0.52rem);
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+.archive-drawer:hover::after,
+.archive-drawer:focus-visible::after {
+  opacity: 1;
+}
+
+.archive-drawer:focus-visible {
+  outline: 3px solid #ffe09a;
+  outline-offset: 3px;
 }
 
 .destination-card span,
-.destination-card small,
-.archive-drawer small {
+.destination-card small {
   display: block;
   font-size: clamp(0.42rem, 0.55vw, 0.56rem);
   font-weight: 800;
@@ -324,8 +311,7 @@ a { color: inherit; }
   text-transform: uppercase;
 }
 
-.destination-card strong,
-.archive-drawer strong {
+.destination-card strong {
   display: block;
   margin: 2px 0;
   font: 700 clamp(0.72rem, 0.92vw, 0.92rem) var(--serif);
