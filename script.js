@@ -61,10 +61,11 @@ async function initializeDesktopStudy() {
   document.documentElement.classList.add("webgl-preparing");
   const spineControls = createSpineControls(records);
   const readingBook = document.querySelector("#reading-book");
-  if (!readingBook || spineControls.length !== records.length) return;
+  const showArchive = document.querySelector("#show-archive");
+  if (!readingBook || !showArchive || spineControls.length !== records.length) return;
 
   try {
-    const scene = createStudyScene(records, ({ book, spines }) => {
+    const scene = createStudyScene(records, ({ book, spines, drawer }) => {
       readingBook.style.setProperty("--book-left", `${book.left}px`);
       readingBook.style.setProperty("--book-top", `${book.top}px`);
       readingBook.style.setProperty("--book-width", `${book.width}px`);
@@ -77,6 +78,11 @@ async function initializeDesktopStudy() {
         button.style.width = `${bounds.width}px`;
         button.style.height = `${bounds.height}px`;
       });
+
+      showArchive.style.setProperty("--drawer-left", `${drawer.left}px`);
+      showArchive.style.setProperty("--drawer-top", `${drawer.top}px`);
+      showArchive.style.setProperty("--drawer-width", `${drawer.width}px`);
+      showArchive.style.setProperty("--drawer-height", `${drawer.height}px`);
     });
 
     window.__portfolioScene = scene;
@@ -101,7 +107,6 @@ async function initializeDesktopStudy() {
       linkLabel: document.querySelector("#selected-link-label"),
       status: document.querySelector("#selection-status")
     };
-    const showArchive = document.querySelector("#show-archive");
     const returnToStudy = document.querySelector("#return-to-study");
     let selectedIndex = 0;
 

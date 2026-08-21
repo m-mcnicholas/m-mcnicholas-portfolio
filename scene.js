@@ -418,6 +418,7 @@ export function createStudyScene(records, onLayout) {
   addRoom();
   const bookGroup = addReadingStandAndBook();
   addStack();
+  const archiveDrawer = addArchiveDrawer();
 
   function mesh(geometry, material, { position, rotation, cast = true, receive = true } = {}) {
     disposableGeometries.push(geometry);
@@ -587,6 +588,25 @@ export function createStudyScene(records, onLayout) {
     board.receiveShadow = true;
     group.add(board);
 
+    // A slim brass frame around the exposed margin (the board is larger than
+    // the book it holds) reads as a finished picture/lectern panel instead of
+    // bare plywood, echoing the brass already used on the lamp and inkwell.
+    const boardFrameZ = board.position.z + boardGeometry.parameters.depth / 2 + 0.02;
+    const boardFrameThickness = 0.11;
+    [
+      [8.55, boardFrameThickness, 0, 2.5 - boardFrameThickness / 2],
+      [8.55, boardFrameThickness, 0, -(2.5 - boardFrameThickness / 2)],
+      [boardFrameThickness, 5.0, 4.275 - boardFrameThickness / 2, 0],
+      [boardFrameThickness, 5.0, -(4.275 - boardFrameThickness / 2), 0]
+    ].forEach(([width, height, x, y]) => {
+      const stripGeometry = new THREE.BoxGeometry(width, height, 0.05);
+      disposableGeometries.push(stripGeometry);
+      const strip = new THREE.Mesh(stripGeometry, materials.brass);
+      strip.position.set(x, y, boardFrameZ);
+      strip.castShadow = false;
+      group.add(strip);
+    });
+
     const ledgeGeometry = new THREE.BoxGeometry(8.8, 0.3, 0.68);
     disposableGeometries.push(ledgeGeometry);
     const ledge = new THREE.Mesh(ledgeGeometry, materials.wood);
@@ -594,13 +614,44 @@ export function createStudyScene(records, onLayout) {
     ledge.castShadow = true;
     group.add(ledge);
 
-    const supportGeometry = new THREE.BoxGeometry(2.2, 2.2, 0.35);
-    disposableGeometries.push(supportGeometry);
-    const support = new THREE.Mesh(supportGeometry, materials.darkWood);
-    support.position.set(0, -3.1, -0.25);
-    support.rotation.z = Math.PI / 4;
-    support.castShadow = true;
-    group.add(support);
+    // The desk surface sits only ~0.25 units below the ledge, so the previous
+    // support (a single box rotated into a diamond) had to be oversized to
+    // clear the desktop at all; half of it was buried inside the tabletop and
+    // only its upper point ever read on screen. A shallow plinth spanning the
+    // ledge's footprint, with two corner feet that project forward past the
+    // ledge's own front edge, gives the base a real silhouette within that
+    // same tight gap instead of a floating rotated block.
+    const plinthGeometry = new THREE.BoxGeometry(8.3, 0.34, 0.56);
+    disposableGeometries.push(plinthGeometry);
+    const plinth = new THREE.Mesh(plinthGeometry, materials.darkWood);
+    plinth.position.set(0, -2.62, 0.14);
+    plinth.castShadow = true;
+    plinth.receiveShadow = true;
+    group.add(plinth);
+
+    const plinthCapGeometry = new THREE.BoxGeometry(8.34, 0.04, 0.58);
+    disposableGeometries.push(plinthCapGeometry);
+    const plinthCap = new THREE.Mesh(plinthCapGeometry, materials.brass);
+    plinthCap.position.set(0, -2.45, 0.14);
+    plinthCap.castShadow = false;
+    group.add(plinthCap);
+
+    const footGeometry = new THREE.BoxGeometry(0.62, 0.34, 0.74);
+    disposableGeometries.push(footGeometry);
+    const footCapGeometry = new THREE.BoxGeometry(0.66, 0.05, 0.78);
+    disposableGeometries.push(footCapGeometry);
+    [-1, 1].forEach((side) => {
+      const foot = new THREE.Mesh(footGeometry, materials.darkWood);
+      foot.position.set(side * 3.85, -2.62, 0.32);
+      foot.castShadow = true;
+      foot.receiveShadow = true;
+      group.add(foot);
+
+      const footCap = new THREE.Mesh(footCapGeometry, materials.brass);
+      footCap.position.set(side * 3.85, -2.45, 0.32);
+      footCap.castShadow = false;
+      group.add(footCap);
+    });
 
     // A soft contact patch strengthens the book/lectern junction without an
     // integrated-GPU post-processing pass.
@@ -832,6 +883,66 @@ export function createStudyScene(records, onLayout) {
     mesh(new THREE.BoxGeometry(4.62, 0.24, 2.85), materials.darkWood, { position: [4.45, -0.1, 0.66] });
   }
 
+  // The catalogue drawer used to be a flat HTML/CSS card pasted over the
+  // canvas, faking a drawer front with gradients. It now exists as a real
+  // object set into the desk's front apron, so it shares the scene's
+  // perspective, lighting, and shadows instead of reading as a sticker.
+  function addArchiveDrawer() {
+    const group = new THREE.Group();
+    group.position.set(-2.1, -0.5, 5.05);
+    scene.add(group);
+
+    const gapMaterial = new THREE.MeshStandardMaterial({ color: 0x140d09, roughness: 0.96 });
+    disposableMaterials.push(gapMaterial);
+    const gapGeometry = new THREE.BoxGeometry(3.34, 0.74, 0.08);
+    disposableGeometries.push(gapGeometry);
+    const gap = new THREE.Mesh(gapGeometry, gapMaterial);
+    gap.position.z = 0.2;
+    gap.castShadow = false;
+    group.add(gap);
+
+    const frontGeometry = new THREE.BoxGeometry(3.1, 0.62, 0.16);
+    disposableGeometries.push(frontGeometry);
+    const front = new THREE.Mesh(frontGeometry, materials.darkWood);
+    front.position.z = 0.28;
+    front.castShadow = true;
+    front.receiveShadow = true;
+    group.add(front);
+    const frontFaceZ = front.position.z + frontGeometry.parameters.depth / 2;
+
+    // A small brass-framed index card, and a knob below it, echo the drawer's
+    // library card-catalogue heritage from the original CSS design.
+    const labelPlateGeometry = new THREE.BoxGeometry(0.92, 0.36, 0.04);
+    disposableGeometries.push(labelPlateGeometry);
+    const labelPlate = new THREE.Mesh(labelPlateGeometry, materials.brass);
+    labelPlate.position.set(0, 0.11, frontFaceZ + 0.02);
+    labelPlate.castShadow = false;
+    group.add(labelPlate);
+
+    const labelCardGeometry = new THREE.PlaneGeometry(0.76, 0.24);
+    disposableGeometries.push(labelCardGeometry);
+    const labelCard = new THREE.Mesh(labelCardGeometry, materials.paper);
+    labelCard.position.set(0, 0.11, frontFaceZ + 0.045);
+    labelCard.castShadow = false;
+    labelCard.receiveShadow = false;
+    group.add(labelCard);
+
+    const knobGeometry = new THREE.CylinderGeometry(0.1, 0.13, 0.09, 18);
+    disposableGeometries.push(knobGeometry);
+    const knob = new THREE.Mesh(knobGeometry, materials.brass);
+    knob.position.set(0, -0.16, frontFaceZ + 0.05);
+    knob.rotation.x = Math.PI / 2;
+    knob.castShadow = true;
+    group.add(knob);
+
+    return {
+      group,
+      width: frontGeometry.parameters.width,
+      height: frontGeometry.parameters.height,
+      frontZ: frontFaceZ
+    };
+  }
+
   function projectPoint(point) {
     const projected = point.clone().project(camera);
     const bounds = study.getBoundingClientRect();
@@ -874,7 +985,18 @@ export function createStudyScene(records, onLayout) {
       ]);
     });
 
-    onLayout({ book: projectRectangle(bookCorners), spines: spineBounds });
+    const drawerCorners = [
+      new THREE.Vector3(-archiveDrawer.width / 2, archiveDrawer.height / 2, archiveDrawer.frontZ),
+      new THREE.Vector3(archiveDrawer.width / 2, archiveDrawer.height / 2, archiveDrawer.frontZ),
+      new THREE.Vector3(archiveDrawer.width / 2, -archiveDrawer.height / 2, archiveDrawer.frontZ),
+      new THREE.Vector3(-archiveDrawer.width / 2, -archiveDrawer.height / 2, archiveDrawer.frontZ)
+    ].map((point) => archiveDrawer.group.localToWorld(point));
+
+    onLayout({
+      book: projectRectangle(bookCorners),
+      spines: spineBounds,
+      drawer: projectRectangle(drawerCorners)
+    });
   }
 
   function resize() {
@@ -900,6 +1022,7 @@ export function createStudyScene(records, onLayout) {
       bookGroup.position.x = -2.1;
       camera.position.x = 0;
     }
+    archiveDrawer.group.position.x = bookGroup.position.x;
     cameraTarget.x = camera.position.x;
     camera.lookAt(cameraTarget);
     camera.updateProjectionMatrix();
