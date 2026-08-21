@@ -1,0 +1,31 @@
+{
+  "hash": "4d33bf47",
+  "configHash": "e7e52451",
+  "lockfileHash": "b3bd50bc",
+  "browserHash": "7718dbb2",
+  "optimized": {
+    "three": {
+      "src": "../../node_modules/three/build/three.module.js",
+      "file": "three.js",
+      "fileHash": "ff7cc364",
+      "needsInterop": false
+    },
+    "three/examples/jsm/controls/OrbitControls.js": {
+      "src": "../../node_modules/three/examples/jsm/controls/OrbitControls.js",
+      "file": "three_examples_jsm_controls_OrbitControls__js.js",
+      "fileHash": "588dd5a1",
+      "needsInterop": false
+    },
+    "three/examples/jsm/utils/BufferGeometryUtils.js": {
+      "src": "../../node_modules/three/examples/jsm/utils/BufferGeometryUtils.js",
+      "file": "three_examples_jsm_utils_BufferGeometryUtils__js.js",
+      "fileHash": "e27cb1ed",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-7ZQWRWOH": {
+      "file": "chunk-7ZQWRWOH.js"
+    }
+  }
+}

@@ -74,7 +74,7 @@ The Three.js perspective camera uses a shallow elevated reading sightline (a res
 
 Important scene logic lives in `scene.js`:
 
-- `addRoom()` builds the desk and leather blotter, asymmetric framed paneling, recessed bookcases, irregular shelf rows, visible library lamp, generic collegiate engraving, and restrained inkwell.
+- `addRoom()` builds the desk and leather blotter, asymmetric framed paneling, recessed bookcases, irregular shelf rows, visible library lamp, a generated starry-night framed picture, and restrained inkwell.
 - `addReadingStandAndBook()` builds rounded extruded covers, independently angled page blocks, curved page meshes, layered sheet edges, hinge, contact patch, lectern board, ledge, and support.
 - `addStack()` derives every closed volume from project order and its deterministic binding profile.
 - `updateDomLayout()` projects physical page and spine coordinates into screen-space bounds for the semantic HTML controls.
@@ -90,7 +90,7 @@ The open book remains in an upright X/Y plane for reading. Each half has a round
 
 Every project volume uses the same physical construction system: two thin binding boards enclose an inset warm-paper block, and a separate flat or gently rounded spine covers only the bound edge. Half-leather books add cloth board panels without recoloring the paper. Fine, sub-pixel seams appear only on exposed text-block ends. This keeps page blocks cream and matte across calf, cloth, buckram, and half-leather bindings.
 
-Semantic HTML is projected from the physical paper and spine bounds after every resize or selection frame. Page elements are transparent typographic layers with irregular clipping; the Three.js paper supplies their color, lighting, edge, relief, and shadow. Spine buttons likewise have transparent control boxes: stamped lettering or an inset title label is the only visible DOM treatment. The selected-project destination is a double-ruled stamped bookplate, archive navigation is a cloth ribbon, and the lower title plate is visibly pinned to its wooden plinth. The former floating top plaque remains semantic but is visually hidden because the information volume now establishes identity.
+Semantic HTML is projected from the physical paper and spine bounds after every resize or selection frame. Page elements are transparent typographic layers with irregular clipping; the Three.js paper supplies their color, lighting, edge, relief, and shadow. Spine buttons likewise have transparent control boxes: stamped lettering or an inset title label is the only visible DOM treatment. The selected-project destination is a double-ruled stamped bookplate, archive navigation is a small card-catalogue drawer front (the same object the mobile archive uses), and the lower title plate is visibly pinned to its wooden plinth. The former floating top plaque remains semantic but is visually hidden because the information volume now establishes identity.
 
 ## Selection, motion, and accessibility
 

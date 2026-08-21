@@ -1,0 +1,131 @@
+:root {
+  color-scheme: light;
+  --ink: #22201a;
+  --panel: #f4ecda;
+  --accent: #5a7a52;
+  --serif: Iowan Old Style, Baskerville, "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: Avenir, "Avenir Next", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #cfd8c0;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+:focus-visible {
+  outline: 3px solid #2d6ca2;
+  outline-offset: 3px;
+}
+
+.tree-canvas,
+.tree-canvas canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.back-link {
+  position: absolute;
+  z-index: 3;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: #ffffffcc;
+  box-shadow: 0 6px 18px #00000026;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.back-link:hover { background: #ffffff; }
+
+.tree-header {
+  position: absolute;
+  z-index: 2;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  max-width: 26rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  box-shadow: 0 14px 34px #0000002e;
+}
+
+.tree-eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.tree-header h1 {
+  margin: 0.3rem 0 0.55rem;
+  font: 600 clamp(1.4rem, 3.2vw, 1.9rem) var(--serif);
+  letter-spacing: -0.02em;
+}
+
+.tree-caption {
+  margin: 0;
+  color: #4a4436;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.tree-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.95rem;
+}
+
+#regenerate {
+  min-height: 40px;
+  padding: 0.5rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fdf8e8;
+  font: 700 0.85rem var(--sans);
+  cursor: pointer;
+}
+
+#regenerate:hover { background: #4c6845; }
+
+.tree-seed {
+  color: #6b6350;
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tree-fallback {
+  margin: 0.9rem 0 0;
+  color: #7a4938;
+  font-size: 0.85rem;
+}
+
+.tree-fallback[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  html, body { overflow: auto; }
+  .tree-canvas { height: 60vh; }
+  .tree-header {
+    position: static;
+    max-width: none;
+    margin-top: 60vh;
+    border-radius: 0;
+  }
+}

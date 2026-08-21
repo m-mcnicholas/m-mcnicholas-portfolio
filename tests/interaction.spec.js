@@ -11,7 +11,7 @@ test("every spine selects the matching project immediately", async ({ page }) =>
   const controls = page.locator(".spine-control");
   const sourceRecords = page.locator(".project-record");
 
-  for (let index = 0; index < 7; index += 1) {
+  for (let index = 0; index < 8; index += 1) {
     const expectedTitle = (await sourceRecords.nth(index).locator("h2").textContent()).trim();
     const expectedDate = (await sourceRecords.nth(index).locator("time").textContent()).trim();
     await controls.nth(index).click();
@@ -19,20 +19,21 @@ test("every spine selects the matching project immediately", async ({ page }) =>
     await expect(page.locator("#selected-title")).toHaveText(expectedTitle);
     await expect(page.locator("#selected-date")).toHaveText(expectedDate);
     await expect(page.locator("#selection-status")).toContainText(`Now reading ${expectedTitle}`);
-    if (index > 0) await expect(page.locator("#selected-link")).toHaveAttribute("href", /test-project\.html#/);
+    if (index === 1) await expect(page.locator("#selected-link")).toHaveAttribute("href", "projects/generative-tree/index.html");
+    else if (index > 1) await expect(page.locator("#selected-link")).toHaveAttribute("href", /test-project\.html#/);
   }
 });
 
 test("the newest rapid selection wins without a queue", async ({ page }) => {
-  await page.locator(".spine-control").nth(2).click();
-  await page.locator(".spine-control").nth(5).click();
-  await page.locator(".spine-control").nth(1).click();
-  await page.locator(".spine-control").nth(6).click();
   await page.locator(".spine-control").nth(3).click();
+  await page.locator(".spine-control").nth(6).click();
+  await page.locator(".spine-control").nth(2).click();
+  await page.locator(".spine-control").nth(7).click();
+  await page.locator(".spine-control").nth(4).click();
 
   await expect(page.locator("#selected-title")).toHaveText("Test Project Three");
   await expect(page.locator(".spine-control[aria-pressed='true']")).toHaveCount(1);
-  await expect(page.locator(".spine-control").nth(3)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".spine-control").nth(4)).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#selected-link")).toBeVisible();
   await page.waitForTimeout(320);
   await expect(page.locator("#selected-title")).toHaveText("Test Project Three");
@@ -47,7 +48,8 @@ test("arrow, Home, End, Enter, and Space use semantic controls", async ({ page }
   await page.keyboard.press("Home");
   await expect(controls.first()).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(controls.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(controls.nth(2)).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#selected-title")).toHaveText("Test Project One");
   await page.keyboard.press("Space");
@@ -64,7 +66,7 @@ test("the diegetic catalogue card switches to the archive and back", async ({ pa
 });
 
 test("the selected destination is a real navigable link", async ({ page }) => {
-  await page.locator(".spine-control").nth(1).click();
+  await page.locator(".spine-control").nth(2).click();
   await page.locator("#selected-link").click();
   await expect(page).toHaveURL(/test-project\.html#project-1$/);
 });
@@ -80,7 +82,7 @@ test("keyboard focus has a visible non-color outline", async ({ page }) => {
   expect(outline.width).toBeGreaterThanOrEqual(3);
 });
 
-test("Tab reaches the archive ribbon and physical volume controls", async ({ page }) => {
+test("Tab reaches the archive drawer and physical volume controls", async ({ page }) => {
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip-link")).toBeFocused();
   await page.keyboard.press("Tab");
@@ -93,7 +95,7 @@ test("reduced motion keeps selection immediate and animation-free", async ({ pag
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);
-  await page.locator(".spine-control").nth(4).click();
+  await page.locator(".spine-control").nth(5).click();
   await expect(page.locator("#selected-title")).toHaveText("Test Project Four");
   const activeAnimations = await page.locator("#reading-book").evaluate((element) => element.getAnimations({ subtree: true }).length);
   expect(activeAnimations).toBe(0);

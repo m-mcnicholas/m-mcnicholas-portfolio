@@ -20,7 +20,7 @@ export async function installProjectFixtures(page, count = 6) {
           <p class="record-details">This project exists only in the automated browser response.</p>
           <a href="test-project.html#project-${index + 1}">Open test project ${index + 1}</a>
         </article>`).join("");
-    html = html.replace('<p class="empty-archive">No projects have been added yet.</p>', records);
+    html = html.replace("<!-- automated-fixtures-insert -->", records);
     await route.fulfill({ response, body: html });
   });
 }

@@ -26,9 +26,9 @@ The open book uses rounded extruded cover and page-block shapes. Subdivided pape
 
 The visible green-shaded library lamp is the lighting explanation. A local warm point source supplies falloff, a warm directional key from the same physical direction supplies one economical shadow map, and dim ambient/cool stack fills preserve readable shadows. The scene intentionally avoids an integrated-GPU post-processing pass. Contact patches and ordinary cast shadows handle the most important gutter, ledge, stack, and blotter junctions.
 
-DOM pages are transparent ink layers clipped to imperfect modeled bounds. Spine controls are transparent except for stamped type or binding-appropriate inset labels. The selected destination is a stamped double-rule bookplate; archive navigation is a cloth ribbon; the plinth plate has inset shading and mounting pins. The floating top plaque was removed visually because identity is already printed in the information volume.
+DOM pages are transparent ink layers clipped to imperfect modeled bounds. Spine controls are transparent except for stamped type or binding-appropriate inset labels. The selected destination is a stamped double-rule bookplate; archive navigation is a small card-catalogue drawer front with a brass label and pull ring, matching the same object the mobile archive uses; the plinth plate has inset shading and mounting pins. The floating top plaque was removed visually because identity is already printed in the information volume.
 
-The room adds framed panel battens, shelf crown molding, different bookcase dimensions, seeded shelf gaps and leaning groups, a leather desk blotter, and a generic collegiate engraving. The existing inkwell remains the only small scale prop.
+The room adds framed panel battens, shelf crown molding, different bookcase dimensions, seeded shelf gaps and leaning groups, a leather desk blotter, and a generated starry-night framed picture. The existing inkwell remains the only small scale prop.
 
 ## State and interruption model
 

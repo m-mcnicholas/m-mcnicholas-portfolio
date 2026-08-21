@@ -3,14 +3,15 @@ import { expect, test } from "@playwright/test";
 test.describe("semantic archive", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("shows the empty project archive without JavaScript", async ({ page }) => {
+  test("shows the project archive without JavaScript", async ({ page }) => {
     await page.goto("/");
 
     await expect(page.locator("#study")).toBeHidden();
     await expect(page.locator("#archive")).toBeVisible();
-    await expect(page.locator(".project-record")).toHaveCount(1);
-    await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(0);
-    await expect(page.locator(".empty-archive")).toHaveText("No projects have been added yet.");
+    await expect(page.locator(".project-record")).toHaveCount(2);
+    await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
+    await expect(page.locator(".project-record:not(.information-record) h2")).toContainText("Procedural L-System Forest");
+    await expect(page.locator(".project-record:not(.information-record) a")).toHaveAttribute("href", "projects/generative-tree/index.html");
   });
 
   test("fits a phone viewport without horizontal overflow", async ({ page }) => {
@@ -31,8 +32,7 @@ test("the JavaScript-enabled phone experience remains the complete archive", asy
   await page.goto("/");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(0);
-  await expect(page.locator(".empty-archive")).toBeVisible();
+  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
   const dimensions = await page.evaluate(() => ({
     innerWidth: window.innerWidth,
     scrollWidth: document.documentElement.scrollWidth

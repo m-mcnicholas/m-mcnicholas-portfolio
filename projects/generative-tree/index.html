@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A procedurally generated L-system forest rendered in Three.js, regrown from a new random seed on every visit.">
+  <title>Procedural L-System Forest — Michael McNicholas</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./tree.js"></script>
+</head>
+<body>
+  <a class="back-link" href="../../index.html#archive">← Back to the archive</a>
+
+  <div class="tree-canvas" id="tree-canvas" aria-hidden="true"></div>
+
+  <main>
+    <header class="tree-header">
+      <p class="tree-eyebrow">School project · Generative art</p>
+      <h1>Procedural L-System Forest</h1>
+      <p class="tree-caption">
+        A grove of trees, each grown from an L-system rewriting grammar and interpreted with 3D turtle graphics.
+        Drag to orbit, scroll to zoom.
+      </p>
+      <div class="tree-controls">
+        <button type="button" id="regenerate">Regenerate</button>
+        <span class="tree-seed" id="tree-seed" aria-live="polite"></span>
+      </div>
+      <p class="tree-fallback" id="tree-fallback" hidden>
+        This sketch needs a browser with WebGL support to render.
+      </p>
+    </header>
+  </main>
+</body>
+</html>

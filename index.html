@@ -9,6 +9,12 @@
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="script.js"></script>
 </head>
+
+<!--
+  TO DO:
+    Make the archive thing an object instead of a card in a book.
+-->
+
 <body>
   <a class="skip-link" href="#archive">Skip to the complete project archive</a>
 
@@ -40,16 +46,20 @@
             <strong id="selected-link-label">Open project</strong>
             <small>Open ↗</small>
           </a>
-
-          <a class="catalogue-card" id="show-archive" href="#archive">
-            <span>Archive card · No. 01</span>
-            <strong>Browse the simple archive</strong>
-            <small>All project records ↓</small>
-          </a>
         </section>
       </article>
 
       <section class="volume-selector" aria-labelledby="volume-heading">
+        <!-- A desk object, not a page element: positioned against the
+             lectern's base rather than projected from the book or stack.
+             Kept before .spine-controls so tab order still reaches it
+             immediately after the skip link, ahead of the individual spines. -->
+        <a class="archive-drawer" id="show-archive" href="#archive">
+          <span>Catalogue drawer · No. 01</span>
+          <strong>Open the archive drawer</strong>
+          <small>All project records ↓</small>
+        </a>
+
         <header class="shelf-label">
           <h2 id="volume-heading">Project volumes</h2>
           <p>Choose a labeled spine</p>
@@ -85,7 +95,18 @@
           <p class="record-details">Projects will appear here as they are added to the archive.</p>
         </article>
 
-        <p class="empty-archive">No projects have been added yet.</p>
+        <article class="project-record"
+          data-kind="project"
+          data-color="#3c5233"
+          data-accent="#d9c98a">
+          <p class="record-type">School project · Generative art</p>
+          <h2>Procedural L-System Forest</h2>
+          <time datetime="2026-08-20">August 20, 2026</time>
+          <p class="record-summary">A scattered grove of trees, each grown from L-system grammar rules and rendered in Three.js, regenerating into a new forest from a fresh random seed each time.</p>
+          <p class="record-details">Explores recursive rewriting grammars and turtle-graphics interpretation: an axiom is expanded through branching production rules, then walked to build tapered branch and leaf geometry for each tree, scattered across the ground in a phyllotaxis layout. Includes an orbit camera and a one-click reseed control.</p>
+          <a href="projects/generative-tree/index.html">Open Procedural L-System Forest</a>
+        </article>
+        <!-- automated-fixtures-insert -->
       </div>
 
       <a class="return-to-study" id="return-to-study" href="#study" hidden>Return to the reading desk ↑</a>

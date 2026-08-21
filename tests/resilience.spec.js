@@ -13,7 +13,7 @@ test("a forced WebGL initialization failure leaves only the archive", async ({ p
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
   await expect(page.locator("html")).not.toHaveClass(/webgl-ready/);
-  await expect(page.locator(".project-record")).toHaveCount(1);
+  await expect(page.locator(".project-record")).toHaveCount(2);
 });
 
 test("a narrow desktop receives the complete archive instead of a squeezed room", async ({ page }) => {
@@ -21,7 +21,7 @@ test("a narrow desktop receives the complete archive instead of a squeezed room"
   await page.goto("/");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(0);
+  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
 });
 
 test("a lost WebGL context switches back to the semantic archive", async ({ page }) => {
@@ -31,7 +31,7 @@ test("a lost WebGL context switches back to the semantic archive", async ({ page
   await page.locator("#scene-canvas canvas").dispatchEvent("webglcontextlost");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record")).toHaveCount(7);
+  await expect(page.locator(".project-record")).toHaveCount(8);
 });
 
 test("one added semantic record automatically reaches every presentation", async ({ page }) => {
@@ -47,15 +47,15 @@ test("one added semantic record automatically reaches every presentation", async
         <p class="record-details">This record exists only inside the automated response fixture.</p>
         <a href="test-project.html#temporary">Open temporary project</a>
       </article>`;
-    html = html.replace('<p class="empty-archive">No projects have been added yet.</p>', fixture);
+    html = html.replace("<!-- automated-fixtures-insert -->", fixture);
     await route.fulfill({ response, body: html });
   });
 
   await page.goto("/");
-  await expect(page.locator(".project-record")).toHaveCount(2);
-  await expect(page.locator(".spine-control")).toHaveCount(2);
-  await expect(page.locator(".spine-control").nth(1)).toContainText("Temporary Project");
-  await page.locator(".spine-control").nth(1).click();
+  await expect(page.locator(".project-record")).toHaveCount(3);
+  await expect(page.locator(".spine-control")).toHaveCount(3);
+  await expect(page.locator(".spine-control").nth(2)).toContainText("Temporary Project");
+  await page.locator(".spine-control").nth(2).click();
   await expect(page.locator("#selected-title")).toHaveText("Temporary Project");
   await expect(page.locator("#selected-link")).toHaveAttribute("href", "test-project.html#temporary");
 });
@@ -64,7 +64,9 @@ test("ten volumes remain simultaneously visible without manual coordinates", asy
   await page.route("**/", async (route) => {
     const response = await route.fetch();
     let html = await response.text();
-    const fixtures = Array.from({ length: 9 }, (_, index) => `
+    // The archive already holds the information record and one real project;
+    // eight more fixtures reach the documented ten-volume stack capacity.
+    const fixtures = Array.from({ length: 8 }, (_, index) => `
       <article class="project-record" data-kind="project" data-color="#4b6152" data-accent="#ead595">
         <p class="record-type">Maximum stack fixture</p>
         <h2>Stack Project ${index + 1}</h2>
@@ -73,7 +75,7 @@ test("ten volumes remain simultaneously visible without manual coordinates", asy
         <p class="record-details">This content exists only in the automated browser response.</p>
         <a href="test-project.html#stack-${index + 1}">Open fixture</a>
       </article>`).join("");
-    html = html.replace('<p class="empty-archive">No projects have been added yet.</p>', fixtures);
+    html = html.replace("<!-- automated-fixtures-insert -->", fixtures);
     await route.fulfill({ response, body: html });
   });
 

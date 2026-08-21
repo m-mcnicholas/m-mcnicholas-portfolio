@@ -232,33 +232,106 @@ export function createStudyScene(records, onLayout) {
 
   function makeArtworkTexture() {
     return canvasTexture(512, (context, size) => {
-      context.fillStyle = "#b8aa87";
+      const random = mulberry32(501);
+
+      // A generated night sky in the spirit of a swirling starry-night
+      // canvas: procedurally composed strokes and stars, not a reproduction
+      // of any specific painting.
+      const sky = context.createLinearGradient(0, 0, 0, size);
+      sky.addColorStop(0, "#0c1a3a");
+      sky.addColorStop(0.55, "#1d3f63");
+      sky.addColorStop(0.8, "#3a5f78");
+      context.fillStyle = sky;
       context.fillRect(0, 0, size, size);
-      context.strokeStyle = "#40392e88";
+
+      for (let swirl = 0; swirl < 7; swirl += 1) {
+        const cx = 90 + random() * (size - 180);
+        const cy = 50 + random() * (size * 0.55);
+        const radius = 28 + random() * 66;
+        const turns = 1.2 + random() * 1.6;
+        const start = random() * Math.PI * 2;
+        context.strokeStyle = `rgba(${210 + random() * 40},${220 + random() * 30},${180 + random() * 60},${0.16 + random() * 0.18})`;
+        context.lineWidth = 2 + random() * 3;
+        context.beginPath();
+        for (let step = 0; step <= 40; step += 1) {
+          const t = step / 40;
+          const angle = start + t * Math.PI * 2 * turns;
+          const r = radius * (0.3 + t * 0.7);
+          const x = cx + Math.cos(angle) * r;
+          const y = cy + Math.sin(angle) * r * 0.6;
+          if (step === 0) context.moveTo(x, y);
+          else context.lineTo(x, y);
+        }
+        context.stroke();
+      }
+
+      for (let star = 0; star < 70; star += 1) {
+        const x = random() * size;
+        const y = random() * size * 0.62;
+        const brightness = random();
+        const r = brightness > 0.85 ? 2.6 : brightness > 0.55 ? 1.5 : 0.8;
+        const glow = context.createRadialGradient(x, y, 0, x, y, r * 4);
+        glow.addColorStop(0, `rgba(255,250,225,${0.55 + brightness * 0.4})`);
+        glow.addColorStop(1, "rgba(255,250,225,0)");
+        context.fillStyle = glow;
+        context.beginPath();
+        context.arc(x, y, r * 4, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#fffaf0";
+        context.beginPath();
+        context.arc(x, y, r, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      const moonX = size * 0.74;
+      const moonY = size * 0.22;
+      const moonR = 34;
+      const halo = context.createRadialGradient(moonX, moonY, moonR * 0.4, moonX, moonY, moonR * 3.2);
+      halo.addColorStop(0, "rgba(255,241,196,0.55)");
+      halo.addColorStop(1, "rgba(255,241,196,0)");
+      context.fillStyle = halo;
+      context.beginPath();
+      context.arc(moonX, moonY, moonR * 3.2, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#fdf3d0";
+      context.beginPath();
+      context.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+      context.fill();
+
+      // Low hills and a pair of tapering, wind-bent silhouettes ground the
+      // sky without tracing any specific painting's composition.
+      context.fillStyle = "#0a1220";
+      context.beginPath();
+      context.moveTo(0, size * 0.82);
+      for (let x = 0; x <= size; x += 16) {
+        context.lineTo(x, size * 0.8 + Math.sin(x * 0.02 + 4) * 10);
+      }
+      context.lineTo(size, size);
+      context.lineTo(0, size);
+      context.closePath();
+      context.fill();
+
+      [[size * 0.16, 60], [size * 0.24, 42]].forEach(([x, height]) => {
+        context.beginPath();
+        context.moveTo(x, size * 0.84);
+        for (let step = 0; step <= 10; step += 1) {
+          const t = step / 10;
+          const sway = Math.sin(t * Math.PI * 3) * (6 * (1 - t));
+          context.lineTo(x + sway, size * 0.84 - t * height);
+        }
+        for (let step = 10; step >= 0; step -= 1) {
+          const t = step / 10;
+          const sway = Math.sin(t * Math.PI * 3 + 1) * (6 * (1 - t));
+          context.lineTo(x + 8 + sway, size * 0.84 - t * height);
+        }
+        context.closePath();
+        context.fill();
+      });
+
+      context.strokeStyle = "#c9a55c88";
       context.lineWidth = 2;
       context.strokeRect(28, 28, size - 56, size - 56);
       context.strokeRect(38, 38, size - 76, size - 76);
-      // A deliberately generic collegiate engraving: masonry, windows and
-      // cross-hatching, with no borrowed or recognizable copyrighted image.
-      context.fillStyle = "#554a3b";
-      context.fillRect(92, 226, 328, 142);
-      context.beginPath();
-      context.moveTo(72, 228); context.lineTo(256, 104); context.lineTo(440, 228); context.closePath(); context.fill();
-      context.fillStyle = "#b8aa87";
-      for (let row = 0; row < 2; row += 1) {
-        for (let column = 0; column < 6; column += 1) {
-          context.fillRect(112 + column * 51, 250 + row * 55, 21, 35);
-        }
-      }
-      context.strokeStyle = "#40392e70";
-      context.lineWidth = 1;
-      for (let line = -80; line < 600; line += 9) {
-        context.beginPath(); context.moveTo(line, 408); context.lineTo(line + 190, 92); context.stroke();
-      }
-      context.fillStyle = "#40392ea8";
-      context.font = "20px Georgia";
-      context.textAlign = "center";
-      context.fillText("COLLEGIUM · MDCCCXCIV", size / 2, 438);
     });
   }
 

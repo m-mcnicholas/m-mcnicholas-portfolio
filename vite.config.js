@@ -8,7 +8,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        portfolio: resolve(import.meta.dirname, "index.html")
+        portfolio: resolve(import.meta.dirname, "index.html"),
+        generativeTree: resolve(import.meta.dirname, "projects/generative-tree/index.html")
       }
     }
   }

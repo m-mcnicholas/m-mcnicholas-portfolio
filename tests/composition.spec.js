@@ -22,7 +22,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   await expect(page.locator("#study")).toBeVisible();
   await expect(page.locator("#archive")).toBeHidden();
   await expect(page.locator("#scene-canvas canvas")).toBeVisible();
-  await expect(page.locator(".spine-control")).toHaveCount(7);
+  await expect(page.locator(".spine-control")).toHaveCount(8);
 
   const metrics = await page.evaluate(() => {
     const book = document.querySelector("#reading-book").getBoundingClientRect();
@@ -48,7 +48,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   expect(badResponses).toEqual([]);
   await page.screenshot({ path: "test-results/composition-1280x720.png" });
 
-  await page.locator(".spine-control").nth(2).click();
+  await page.locator(".spine-control").nth(3).click();
   await page.waitForTimeout(320);
   await expect(page.locator("#selected-title")).toHaveText("Test Project Two");
   await expect(page.locator("#selected-date")).toHaveText("May 1, 2026");
