@@ -677,10 +677,23 @@ export function createStudyScene(records, onLayout) {
     escutcheon.castShadow = false;
     group.add(escutcheon);
 
-    const drawerKnobGeometry = new THREE.CylinderGeometry(0.065, 0.085, 0.06, 16);
+    // No DOM caption sits on the drawer any more (a "click here" sentence
+    // read as a UI label pasted over the scene, not part of it); a warm,
+    // faintly emissive knob is the invitation instead — sized up slightly
+    // from a plain hardware knob so it reads as something meant to be
+    // pulled, and glowing enough to catch the eye against the dark front.
+    const drawerKnobMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd6a552,
+      roughness: 0.4,
+      metalness: 0.5,
+      emissive: 0xffa940,
+      emissiveIntensity: 1.35
+    });
+    disposableMaterials.push(drawerKnobMaterial);
+    const drawerKnobGeometry = new THREE.CylinderGeometry(0.085, 0.105, 0.07, 20);
     disposableGeometries.push(drawerKnobGeometry);
-    const drawerKnob = new THREE.Mesh(drawerKnobGeometry, materials.brass);
-    drawerKnob.position.set(0, -2.62, drawerFrontFaceZ + 0.06);
+    const drawerKnob = new THREE.Mesh(drawerKnobGeometry, drawerKnobMaterial);
+    drawerKnob.position.set(0, -2.62, drawerFrontFaceZ + 0.065);
     drawerKnob.rotation.x = Math.PI / 2;
     drawerKnob.castShadow = true;
     group.add(drawerKnob);

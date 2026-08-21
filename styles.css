@@ -255,12 +255,12 @@ a { color: inherit; }
 
 .destination-card[hidden] { display: none; }
 
-/* The drawer front, its brass escutcheon, and its pull knob are real
+/* The drawer front, its brass escutcheon, and its glowing pull knob are real
    geometry in the WebGL scene now (built into the lectern's own plinth in
-   scene.js), not a flat CSS card pasted over the canvas. This anchor is only
-   the accessible hit target, sized and positioned to match the projected
-   drawer face exactly, with the visible label stamped like gilt lettering
-   on the drawer's dark wood. */
+   scene.js) — the knob's own warm emissive material is what invites the
+   click, so this anchor carries no visible label of its own. It is only the
+   accessible hit target (see the aria-label) sized to the projected drawer
+   face, plus a soft hover/focus glow layered over that same knob position. */
 .archive-drawer {
   --drawer-left: 0px;
   --drawer-top: 0px;
@@ -275,6 +275,26 @@ a { color: inherit; }
   padding: 0;
   text-decoration: none;
   pointer-events: auto;
+}
+
+.archive-drawer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 320%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #ffcf7a66, #ffcf7a00 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.archive-drawer:hover::after,
+.archive-drawer:focus-visible::after {
+  opacity: 1;
 }
 
 .archive-drawer:focus-visible {
@@ -295,23 +315,6 @@ a { color: inherit; }
   display: block;
   margin: 2px 0;
   font: 700 clamp(0.72rem, 0.92vw, 0.92rem) var(--serif);
-}
-
-/* The drawer front is dark wood (see drawerFront in addReadingStandAndBook),
-   so the label reads as gilt-stamped lettering rather than ink on paper. */
-.archive-drawer strong {
-  position: absolute;
-  inset: 10%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  color: #f1dec0;
-  font: 700 clamp(0.4rem, 0.55vw, 0.5rem)/1.05 var(--serif);
-  letter-spacing: 0.01em;
-  text-shadow: 0 1px 1px #000d, 0 0 1px #000;
-  text-align: center;
-  text-wrap: balance;
 }
 
 .volume-selector { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
