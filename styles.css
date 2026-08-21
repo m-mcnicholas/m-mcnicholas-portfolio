@@ -255,11 +255,12 @@ a { color: inherit; }
 
 .destination-card[hidden] { display: none; }
 
-/* The drawer front, its brass index-card holder, and its pull knob are real
-   geometry in the WebGL scene now (see addArchiveDrawer in scene.js), not a
-   flat CSS card pasted over the canvas. This anchor is only the accessible
-   hit target, sized and positioned to match the projected drawer face
-   exactly, with the visible label printed like ink on the 3D index card. */
+/* The drawer front, its brass escutcheon, and its pull knob are real
+   geometry in the WebGL scene now (built into the lectern's own plinth in
+   scene.js), not a flat CSS card pasted over the canvas. This anchor is only
+   the accessible hit target, sized and positioned to match the projected
+   drawer face exactly, with the visible label stamped like gilt lettering
+   on the drawer's dark wood. */
 .archive-drawer {
   --drawer-left: 0px;
   --drawer-top: 0px;
@@ -296,23 +297,19 @@ a { color: inherit; }
   font: 700 clamp(0.72rem, 0.92vw, 0.92rem) var(--serif);
 }
 
-/* Positioned over the 3D label card rather than the full drawer front (see
-   the labelCard placement in addArchiveDrawer), so the text reads like ink
-   printed on that small index card instead of floating across the knob. */
+/* The drawer front is dark wood (see drawerFront in addReadingStandAndBook),
+   so the label reads as gilt-stamped lettering rather than ink on paper. */
 .archive-drawer strong {
   position: absolute;
-  top: 13%;
-  right: 30%;
-  bottom: 48%;
-  left: 30%;
+  inset: 10%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
-  color: rgb(41 35 29 / 92%);
-  font: 700 clamp(0.42rem, 0.6vw, 0.56rem)/1.1 var(--serif);
-  letter-spacing: -0.01em;
-  mix-blend-mode: multiply;
+  color: #f1dec0;
+  font: 700 clamp(0.4rem, 0.55vw, 0.5rem)/1.05 var(--serif);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 1px #000d, 0 0 1px #000;
   text-align: center;
   text-wrap: balance;
 }
