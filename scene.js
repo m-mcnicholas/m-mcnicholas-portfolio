@@ -69,6 +69,8 @@ export function createStudyScene(records, onLayout) {
   let turningLeaf;
   let archiveDrawerLocal;
   let selectionFrame = 0;
+  let pageTurnFrame = 0;
+  let pageTurnResolve = null;
   let renderCount = 0;
   let disposed = false;
 
@@ -837,6 +839,12 @@ export function createStudyScene(records, onLayout) {
       cursor += profiles[index].thickness + gap;
     }
 
+    // At the documented nine- and ten-volume upper bound, tuck the whole
+    // stack inward by a few hundredths of a world unit so the widest generated
+    // binding remains inside a 1280px viewport. Ordinary archive sizes keep
+    // the established composition unchanged.
+    const stackBaseX = 4.45 - Math.max(0, records.length - 8) * 0.025;
+
     records.forEach((record, index) => {
       const profile = profiles[index];
       const { width, thickness, depth } = profile;
@@ -848,7 +856,7 @@ export function createStudyScene(records, onLayout) {
       disposableMaterials.push(bindingMaterial);
 
       const object = new THREE.Group();
-      object.position.set(4.45 + profile.offset, centers[index], 0.69 + ((profile.seed >>> 19) % 5) * 0.012);
+      object.position.set(stackBaseX + profile.offset, centers[index], 0.69 + ((profile.seed >>> 19) % 5) * 0.012);
       object.rotation.z = profile.lean;
       scene.add(object);
 
@@ -932,7 +940,7 @@ export function createStudyScene(records, onLayout) {
       stackBooks.push({ object, width, thickness, depth, homeX: object.position.x, profile, bindingMaterial });
     });
 
-    mesh(new THREE.BoxGeometry(4.62, 0.24, 2.85), materials.darkWood, { position: [4.45, -0.1, 0.66] });
+    mesh(new THREE.BoxGeometry(4.62, 0.24, 2.85), materials.darkWood, { position: [stackBaseX, -0.1, 0.66] });
   }
 
   function projectPoint(point) {
@@ -1022,6 +1030,7 @@ export function createStudyScene(records, onLayout) {
   }
 
   function setSelected(index, { animate = true } = {}) {
+    cancelPageTurn();
     cancelAnimationFrame(selectionFrame);
     const starts = stackBooks.map(({ object }) => object.position.x);
     const targets = stackBooks.map(({ homeX }, recordIndex) => homeX + (recordIndex === index ? -0.32 : 0));
@@ -1030,8 +1039,6 @@ export function createStudyScene(records, onLayout) {
 
     if (!animate) {
       stackBooks.forEach(({ object }, recordIndex) => { object.position.x = targets[recordIndex]; });
-      turningLeaf.visible = false;
-      turningLeaf.rotation.y = 0;
       render();
       updateDomLayout();
       return;
@@ -1040,8 +1047,6 @@ export function createStudyScene(records, onLayout) {
     // Each request owns one short animation frame loop. A newer selection
     // cancels this loop and retargets from the current positions, so movement
     // can never queue or restore stale project state.
-    turningLeaf.visible = true;
-    turningLeaf.rotation.y = 0;
     const startedAt = performance.now();
     function animateSelection(now) {
       const progress = Math.min(1, (now - startedAt) / 280);
@@ -1049,16 +1054,10 @@ export function createStudyScene(records, onLayout) {
       stackBooks.forEach(({ object }, recordIndex) => {
         object.position.x = THREE.MathUtils.lerp(starts[recordIndex], targets[recordIndex], eased);
       });
-      const lift = Math.sin(progress * Math.PI);
-      turningLeaf.rotation.y = -lift * 0.16;
-      turningLeaf.position.z = 0.49 + lift * 0.19;
       render();
       updateDomLayout();
       if (progress < 1) selectionFrame = requestAnimationFrame(animateSelection);
       else {
-        turningLeaf.visible = false;
-        turningLeaf.rotation.y = 0;
-        turningLeaf.position.z = 0.49;
         selectionFrame = 0;
         render();
       }
@@ -1066,10 +1065,71 @@ export function createStudyScene(records, onLayout) {
     selectionFrame = requestAnimationFrame(animateSelection);
   }
 
+  function resetTurningLeaf() {
+    turningLeaf.visible = false;
+    turningLeaf.rotation.y = 0;
+    turningLeaf.rotation.z = 0;
+    turningLeaf.scale.x = 1;
+    turningLeaf.position.set(0.02, -0.01, 0.49);
+  }
+
+  function cancelPageTurn() {
+    if (pageTurnFrame) cancelAnimationFrame(pageTurnFrame);
+    pageTurnFrame = 0;
+    resetTurningLeaf();
+    if (pageTurnResolve) pageTurnResolve(false);
+    pageTurnResolve = null;
+    if (!disposed) render();
+  }
+
+  function turnPage(direction, { animate = true, onMidpoint } = {}) {
+    cancelPageTurn();
+    if (!animate) {
+      onMidpoint?.();
+      return Promise.resolve(true);
+    }
+
+    const forward = direction !== "previous";
+    turningLeaf.visible = true;
+    turningLeaf.scale.x = forward ? 1 : -1;
+    const startedAt = performance.now();
+    let exchanged = false;
+    return new Promise((resolve) => {
+      pageTurnResolve = resolve;
+      function animatePageTurn(now) {
+        const progress = Math.min(1, (now - startedAt) / 460);
+        const eased = progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        const sweep = eased * Math.PI;
+        turningLeaf.rotation.y = (forward ? -1 : 1) * sweep;
+        turningLeaf.rotation.z = Math.sin(progress * Math.PI) * (forward ? -0.025 : 0.025);
+        turningLeaf.position.z = 0.49 + Math.sin(progress * Math.PI) * 0.3;
+        if (!exchanged && progress >= 0.5) {
+          exchanged = true;
+          onMidpoint?.();
+        }
+        render();
+        if (progress < 1) {
+          pageTurnFrame = requestAnimationFrame(animatePageTurn);
+        } else {
+          const finish = pageTurnResolve;
+          pageTurnResolve = null;
+          pageTurnFrame = 0;
+          resetTurningLeaf();
+          render();
+          finish?.(true);
+        }
+      }
+      pageTurnFrame = requestAnimationFrame(animatePageTurn);
+    });
+  }
+
   function dispose() {
     disposed = true;
     window.removeEventListener("resize", resize);
     cancelAnimationFrame(selectionFrame);
+    cancelPageTurn();
     disposableGeometries.forEach((geometry) => geometry.dispose());
     disposableMaterials.forEach((material) => material.dispose());
     disposableTextures.forEach((texture) => texture.dispose());
@@ -1086,9 +1146,11 @@ export function createStudyScene(records, onLayout) {
       pixelRatio: renderer.getPixelRatio(),
       geometries: renderer.info.memory.geometries,
       textures: renderer.info.memory.textures,
-      selectionAnimating: selectionFrame !== 0
+      selectionAnimating: selectionFrame !== 0,
+      pageTurning: pageTurnFrame !== 0,
+      turningDirection: pageTurnFrame === 0 ? null : (turningLeaf.scale.x === 1 ? "next" : "previous")
     };
   }
 
-  return { setSelected, resize, dispose, getDiagnostics };
+  return { setSelected, turnPage, cancelPageTurn, resize, dispose, getDiagnostics };
 }

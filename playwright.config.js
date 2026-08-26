@@ -1,22 +1,27 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const chromiumChannel = process.env.PLAYWRIGHT_CHANNEL || "chromium";
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   reporter: "line",
   use: {
     baseURL: "http://127.0.0.1:4173",
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
+    launchOptions: {
+      args: ["--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessChecksWebRTC"]
+    }
   },
   projects: [
     {
       name: "desktop-chromium",
-      use: { ...devices["Desktop Chrome"], browserName: "chromium", channel: "chromium", viewport: { width: 1280, height: 720 } }
+      use: { ...devices["Desktop Chrome"], browserName: "chromium", channel: chromiumChannel, viewport: { width: 1280, height: 720 } }
     },
     {
       name: "mobile-chromium",
       testMatch: "**/archive.spec.js",
-      use: { ...devices["iPhone 13"], browserName: "chromium", channel: "chromium" }
+      use: { ...devices["iPhone 13"], browserName: "chromium", channel: chromiumChannel }
     }
   ],
   webServer: {

@@ -132,6 +132,7 @@ a { color: inherit; }
   height: var(--book-height);
   grid-template-columns: 1fr 1fr;
   pointer-events: none;
+  touch-action: pan-y;
 }
 
 .reading-page {
@@ -254,6 +255,64 @@ a { color: inherit; }
 }
 
 .destination-card[hidden] { display: none; }
+
+.collection-folio {
+  position: absolute;
+  right: clamp(24px, 2.6vw, 40px);
+  bottom: clamp(26px, 2.7vw, 38px);
+  margin: 0;
+  color: #66523dbd;
+  font: italic clamp(0.52rem, 0.62vw, 0.66rem) var(--serif);
+  letter-spacing: 0.05em;
+}
+
+.collection-folio[hidden],
+.page-turn-tab[hidden] { display: none; }
+
+.page-turn-tab {
+  position: absolute;
+  z-index: 6;
+  top: 61%;
+  display: grid;
+  width: clamp(44px, 4vw, 58px);
+  height: clamp(52px, 5vw, 68px);
+  place-items: center;
+  border: 1px solid #8c7656;
+  border-radius: 2px;
+  background: linear-gradient(100deg, #e2d2ae, #f4e7c9 58%, #cbb994);
+  box-shadow: 0 2px 4px #3b281b42, inset 0 0 9px #7e684324;
+  color: #68463a;
+  cursor: pointer;
+  font: 700 clamp(1rem, 1.4vw, 1.35rem) var(--serif);
+  pointer-events: auto;
+  transform: translateY(-50%) rotate(-0.7deg);
+}
+
+.page-turn-tab::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 13px;
+  height: 13px;
+  background: linear-gradient(135deg, #bba984 49%, #f8ecd0 51%);
+  box-shadow: -1px -1px #8c765566;
+  pointer-events: none;
+}
+
+.page-turn-previous { left: clamp(3px, 0.65vw, 10px); }
+.page-turn-next {
+  right: clamp(3px, 0.65vw, 10px);
+  transform: translateY(-50%) rotate(0.7deg);
+}
+
+.page-turn-tab:hover { color: #3f2821; filter: brightness(1.03); }
+.page-turn-tab:disabled { cursor: wait; opacity: 0.58; }
+.page-turn-tab:focus-visible {
+  outline: 3px solid #2d6ca2;
+  outline-offset: -5px;
+  box-shadow: 0 0 0 3px #f4e7c9, 0 2px 4px #3b281b42;
+}
 
 /* The drawer front, its brass escutcheon, and its glowing pull knob are real
    geometry in the WebGL scene now (built into the lectern's own plinth in
@@ -566,9 +625,11 @@ a { color: inherit; }
 .project-record > a { grid-area: link; }
 
 .project-record h2,
+.project-page h3,
 .project-record p { margin: 0; }
 
-.project-record h2 { font: 700 1.3rem var(--serif); }
+.project-record h2,
+.project-page h3 { font: 700 1.3rem var(--serif); }
 
 .project-record time {
   color: var(--muted-ink);
@@ -594,6 +655,43 @@ a { color: inherit; }
 }
 
 .project-record > a:hover { color: #7a4938; }
+
+.collection-record {
+  grid-template-areas:
+    "type type type type"
+    "title date . ."
+    "pages pages pages pages";
+}
+
+.collection-pages {
+  grid-area: pages;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  margin-top: 0.45rem;
+}
+
+.project-page {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.65fr) minmax(13rem, 1fr) auto;
+  gap: 0.5rem 1rem;
+  align-content: start;
+  padding: 1rem;
+  border: 1px solid #b09a70;
+  background: #f8edD4aa;
+}
+
+.project-page .record-type,
+.project-page h3,
+.project-page .record-details { grid-column: 1 / -1; }
+.project-page time { align-self: center; }
+.project-page > a {
+  align-self: center;
+  border-bottom: 1px solid currentColor;
+  font-weight: 750;
+  text-decoration: none;
+}
+.project-page > a:hover { color: #7a4938; }
 
 .information-record { border-left-color: #a88a4a; }
 .information-record .record-summary { grid-column: summary / link; }
@@ -725,6 +823,30 @@ footer {
   }
 
   .project-record > a::after { content: "  ↗"; }
+
+  .collection-record { min-height: 0; }
+  .collection-record > .record-type { margin-top: 0; }
+  .collection-record > h2,
+  .collection-record > time { margin-top: 0.65rem; }
+  .collection-pages {
+    display: block;
+    margin-top: 1rem;
+  }
+  .project-page {
+    display: block;
+    padding: 1rem 0;
+    border: 0;
+    border-top: 1px solid #b09a70;
+    background: transparent;
+  }
+  .project-page > * + * { margin-top: 0.65rem; }
+  .project-page > a {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    padding: 0.6rem 0;
+  }
+  .project-page > a::after { content: "  ↗"; }
 }
 
 @media (prefers-reduced-motion: reduce) {

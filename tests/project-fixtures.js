@@ -8,7 +8,7 @@ export async function installProjectFixtures(page, count = 6) {
     });
   });
 
-  await page.route("**/", async (route) => {
+  await page.route((url) => url.pathname === "/", async (route) => {
     const response = await route.fetch();
     let html = await response.text();
     const records = names.slice(0, count).map((name, index) => `

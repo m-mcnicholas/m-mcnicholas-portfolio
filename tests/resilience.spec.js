@@ -35,7 +35,7 @@ test("a lost WebGL context switches back to the semantic archive", async ({ page
 });
 
 test("one added semantic record automatically reaches every presentation", async ({ page }) => {
-  await page.route("**/", async (route) => {
+  await page.route((url) => url.pathname === "/", async (route) => {
     const response = await route.fetch();
     let html = await response.text();
     const fixture = `
@@ -61,10 +61,10 @@ test("one added semantic record automatically reaches every presentation", async
 });
 
 test("ten volumes remain simultaneously visible without manual coordinates", async ({ page }) => {
-  await page.route("**/", async (route) => {
+  await page.route((url) => url.pathname === "/", async (route) => {
     const response = await route.fetch();
     let html = await response.text();
-    // The archive already holds the information record and one real project;
+    // The archive already holds the information record and one real collection;
     // eight more fixtures reach the documented ten-volume stack capacity.
     const fixtures = Array.from({ length: 8 }, (_, index) => `
       <article class="project-record" data-kind="project" data-color="#4b6152" data-accent="#ead595">

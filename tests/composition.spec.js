@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 import { installProjectFixtures } from "./project-fixtures.js";
 
 test.beforeEach(async ({ page }) => {
-  await installProjectFixtures(page);
+  // Exercise a representative six-volume room while keeping the integrated-
+  // graphics texture budget below the documented cap. The separate maximum-
+  // stack test still renders all ten supported volumes.
+  await installProjectFixtures(page, 3);
 });
 
 test("desktop WebGL composition exposes the book and every spine", async ({ page }) => {
@@ -22,7 +25,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   await expect(page.locator("#study")).toBeVisible();
   await expect(page.locator("#archive")).toBeHidden();
   await expect(page.locator("#scene-canvas canvas")).toBeVisible();
-  await expect(page.locator(".spine-control")).toHaveCount(8);
+  await expect(page.locator(".spine-control")).toHaveCount(5);
 
   const metrics = await page.evaluate(() => {
     const book = document.querySelector("#reading-book").getBoundingClientRect();

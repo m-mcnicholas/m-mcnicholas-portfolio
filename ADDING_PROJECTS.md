@@ -48,13 +48,42 @@ No existing book position or coordinate should be edited. `scene.js` recalculate
 
 Keep titles near 30 characters where practical and keep selected-page copy concise enough to fit without scrolling at 1280 × 720.
 
+## Optional multi-project collection
+
+Use a collection only when several related projects should share one physical volume. The outer record supplies the spine title, binding, date, and chronological position; each nested `.project-page` supplies one complete reading spread and standalone destination. Flat project records above remain the normal workflow.
+
+```html
+<article class="project-record collection-record"
+  data-kind="collection"
+  data-slug="collection-name"
+  data-color="#355c51"
+  data-accent="#e5cc83">
+  <p class="record-type">Project collection</p>
+  <h2>Collection title</h2>
+  <time datetime="2026-08-24">August 24, 2026</time>
+  <div class="collection-pages">
+    <section class="project-page" data-slug="first-project">
+      <p class="record-type">School project · Category</p>
+      <h3>First project</h3>
+      <time datetime="2026-08-24">August 24, 2026</time>
+      <p class="record-summary">One-sentence project goal.</p>
+      <p class="record-details">Process note, result, or reflection.</p>
+      <a href="projects/first-project/index.html">Open First project</a>
+    </section>
+    <!-- Add further project-page sections in reading order. -->
+  </div>
+</article>
+```
+
+Both slugs are required and form the named URL `#collection-name/first-project`. Keep every nested page complete because the archive exposes the same markup on phones, without JavaScript, and when WebGL is unavailable. Collections with more than one page automatically receive page-edge controls; a one-page collection behaves like a normal volume.
+
 When `data-binding` is omitted, `bindings.js` hashes the title, date, and kind to produce a stable binding kind, thickness, width, depth, spine profile, band count, foil treatment, alignment, and wear. Reordering the record does not change that identity. Use an override only when a particular construction is editorially important; color remains supplied by `data-color`.
 
 ## Chronology and capacity
 
 The information record must remain first. Project records are manually ordered newest to oldest using their `<time datetime>` values. The first project rests immediately below the information volume; the oldest rests at the bottom.
 
-The current scene is verified with seven volumes total and with an automated eight-volume fixture. Stack height is cumulative because each generated binding has a meaningful thickness. The procedural stack supports up to ten volumes at 1280 × 720, but after adding content always verify that every label remains visible and readable.
+Stack height is cumulative because each generated binding has a meaningful thickness. A collection counts as one volume regardless of its page count. The procedural stack supports up to ten volumes at 1280 × 720, but after adding content always verify that every label remains visible and readable.
 
 ## Destinations and assets
 

@@ -13,7 +13,7 @@
 <!--
   Extra Project Ideas:
    - Boolean logic visualizer/playground
-    - 
+    - needs examples
 -->
 
 <body>
@@ -47,7 +47,17 @@
             <strong id="selected-link-label">Open project</strong>
             <small>Open ↗</small>
           </a>
+
+          <p class="collection-folio" id="collection-folio" hidden></p>
         </section>
+
+
+        <button class="page-turn-tab page-turn-previous" id="page-previous" type="button" aria-label="Previous project page" hidden>
+          <span aria-hidden="true">←</span><span class="visually-hidden">Previous project page</span>
+        </button>
+        <button class="page-turn-tab page-turn-next" id="page-next" type="button" aria-label="Next project page" hidden>
+          <span aria-hidden="true">→</span><span class="visually-hidden">Next project page</span>
+        </button>
       </article>
 
       <section class="volume-selector" aria-labelledby="volume-heading">
@@ -93,16 +103,34 @@
           <p class="record-details">Software Engineering with AI</p>
         </article>
 
-        <article class="project-record"
-          data-kind="project"
-          data-color="#3c5233"
-          data-accent="#d9c98a">
-          <p class="record-type">School project · Generative art</p>
-          <h2>Procedural L-System Forest</h2>
-          <time datetime="2026-08-20">August 20, 2026</time>
-          <p class="record-summary">A scattered grove of trees, each grown from L-system grammar rules and rendered in Three.js, regenerating into a new forest from a fresh random seed each time.</p>
-          <p class="record-details">Explores recursive rewriting grammars and turtle-graphics interpretation: an axiom is expanded through branching production rules, then walked to build tapered branch and leaf geometry for each tree, scattered across the ground in a phyllotaxis layout. Includes an orbit camera and a one-click reseed control.</p>
-          <a href="projects/generative-tree/index.html">Open Procedural L-System Forest</a>
+        <article class="project-record collection-record"
+          data-kind="collection"
+          data-slug="extra-projects"
+          data-color="#245e50"
+          data-accent="#edc16f"
+          data-binding="buckram">
+          <p class="record-type">Project collection</p>
+          <h2>Extra Projects</h2>
+          <time datetime="2026-08-24">August 24, 2026</time>
+          <div class="collection-pages">
+            <section class="project-page" data-slug="boolean-logic">
+              <p class="record-type">School project · Interactive systems</p>
+              <h3>Boolean Logic Playground</h3>
+              <time datetime="2026-08-24">August 24, 2026</time>
+              <p class="record-summary">A guided circuit builder for labeling, connecting, and visualizing Boolean logic as live signals flow through gates, latches, and flip-flops.</p>
+              <p class="record-details">Explores combinational and introductory sequential logic through eight common gates, explicit memory components, step-based clock controls, editable system labels, local autosave, and ten practical examples ranging from porch lights to a clocked memory lab.</p>
+              <a href="projects/boolean-logic/index.html">Open Boolean Logic Playground</a>
+            </section>
+
+            <section class="project-page" data-slug="l-system-forest">
+              <p class="record-type">School project · Generative art</p>
+              <h3>Procedural L-System Forest</h3>
+              <time datetime="2026-08-20">August 20, 2026</time>
+              <p class="record-summary">A scattered grove of trees, each grown from L-system grammar rules and rendered in Three.js, regenerating into a new forest from a fresh random seed each time.</p>
+              <p class="record-details">Explores recursive rewriting grammars and turtle-graphics interpretation: an axiom is expanded through branching production rules, then walked to build tapered branch and leaf geometry for each tree, scattered across the ground in a phyllotaxis layout. Includes an orbit camera and a one-click reseed control.</p>
+              <a href="projects/generative-tree/index.html">Open Procedural L-System Forest</a>
+            </section>
+          </div>
         </article>
         <!-- automated-fixtures-insert -->
       </div>
