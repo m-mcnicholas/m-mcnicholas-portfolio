@@ -53,14 +53,14 @@
 
 
         <button class="page-turn-tab page-turn-previous" id="page-previous" type="button" aria-label="Previous project page" hidden>
-          <span aria-hidden="true">←</span><span class="visually-hidden">Previous project page</span>
+          <span aria-hidden="true">← Previous page</span>
         </button>
         <button class="page-turn-tab page-turn-next" id="page-next" type="button" aria-label="Next project page" hidden>
-          <span aria-hidden="true">→</span><span class="visually-hidden">Next project page</span>
+          <span aria-hidden="true">Next page →</span>
         </button>
       </article>
 
-      <section class="volume-selector" aria-labelledby="volume-heading">
+      <section class="volume-selector" aria-label="Project volumes">
         <!-- A desk object, not a page element: sized and positioned to the
              projected face of the 3D drawer front (see updateDomLayout in
              scene.js), not to the page. Kept before .spine-controls so tab
@@ -68,10 +68,6 @@
              the individual spines. -->
         <a class="archive-drawer" id="show-archive" href="#archive" aria-label="Open the complete project archive"></a>
 
-        <header class="shelf-label">
-          <h2 id="volume-heading">Project volumes</h2>
-          <p>Choose a labeled spine</p>
-        </header>
         <div class="spine-controls" id="spine-controls" role="toolbar" aria-label="Project volumes, newest at the top"></div>
       </section>
 
