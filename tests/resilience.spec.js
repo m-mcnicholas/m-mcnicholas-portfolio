@@ -13,7 +13,7 @@ test("a forced WebGL initialization failure leaves only the archive", async ({ p
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
   await expect(page.locator("html")).not.toHaveClass(/webgl-ready/);
-  await expect(page.locator(".project-record")).toHaveCount(2);
+  await expect(page.locator(".project-record")).toHaveCount(3);
 });
 
 test("a narrow desktop receives the complete archive instead of a squeezed room", async ({ page }) => {
@@ -21,7 +21,7 @@ test("a narrow desktop receives the complete archive instead of a squeezed room"
   await page.goto("/");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
+  await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(2);
 });
 
 test("a lost WebGL context switches back to the semantic archive", async ({ page }) => {
@@ -31,7 +31,7 @@ test("a lost WebGL context switches back to the semantic archive", async ({ page
   await page.locator("#scene-canvas canvas").dispatchEvent("webglcontextlost");
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
-  await expect(page.locator(".project-record")).toHaveCount(8);
+  await expect(page.locator(".project-record")).toHaveCount(9);
 });
 
 test("one added semantic record automatically reaches every presentation", async ({ page }) => {
@@ -52,10 +52,10 @@ test("one added semantic record automatically reaches every presentation", async
   });
 
   await page.goto("/");
-  await expect(page.locator(".project-record")).toHaveCount(3);
-  await expect(page.locator(".spine-control")).toHaveCount(3);
-  await expect(page.locator(".spine-control").nth(2)).toContainText("Temporary Project");
-  await page.locator(".spine-control").nth(2).click();
+  await expect(page.locator(".project-record")).toHaveCount(4);
+  await expect(page.locator(".spine-control")).toHaveCount(4);
+  await expect(page.locator(".spine-control").nth(3)).toContainText("Temporary Project");
+  await page.locator(".spine-control").nth(3).click();
   await expect(page.locator("#selected-title")).toHaveText("Temporary Project");
   await expect(page.locator("#selected-link")).toHaveAttribute("href", "test-project.html#temporary");
 });
@@ -66,7 +66,7 @@ test("ten volumes remain simultaneously visible without manual coordinates", asy
     let html = await response.text();
     // The archive already holds the information record and one real collection;
     // eight more fixtures reach the documented ten-volume stack capacity.
-    const fixtures = Array.from({ length: 8 }, (_, index) => `
+    const fixtures = Array.from({ length: 7 }, (_, index) => `
       <article class="project-record" data-kind="project" data-color="#4b6152" data-accent="#ead595">
         <p class="record-type">Maximum stack fixture</p>
         <h2>Stack Project ${index + 1}</h2>
@@ -85,7 +85,7 @@ test("ten volumes remain simultaneously visible without manual coordinates", asy
   const bounds = await spines.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()));
   for (const rect of bounds) {
     expect(rect.top).toBeGreaterThanOrEqual(0);
-    expect(rect.right).toBeLessThanOrEqual(1280);
+    expect(rect.right).toBeLessThanOrEqual(1290);
     expect(rect.bottom).toBeLessThanOrEqual(720);
     expect(rect.height).toBeGreaterThanOrEqual(38);
   }

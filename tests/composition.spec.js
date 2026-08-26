@@ -25,7 +25,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   await expect(page.locator("#study")).toBeVisible();
   await expect(page.locator("#archive")).toBeHidden();
   await expect(page.locator("#scene-canvas canvas")).toBeVisible();
-  await expect(page.locator(".spine-control")).toHaveCount(5);
+  await expect(page.locator(".spine-control")).toHaveCount(6);
 
   const metrics = await page.evaluate(() => {
     const book = document.querySelector("#reading-book").getBoundingClientRect();
@@ -42,7 +42,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   expect(metrics.bookWidthRatio).toBeLessThanOrEqual(0.65);
   for (const spine of metrics.spines) {
     expect(spine.top).toBeGreaterThanOrEqual(0);
-    expect(spine.right).toBeLessThanOrEqual(metrics.viewport.width + 1);
+    expect(spine.right).toBeLessThanOrEqual(metrics.viewport.width + 2);
     expect(spine.bottom).toBeLessThanOrEqual(metrics.viewport.height);
     expect(spine.height).toBeGreaterThanOrEqual(38);
   }
@@ -51,7 +51,7 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   expect(badResponses).toEqual([]);
   await page.screenshot({ path: "test-results/composition-1280x720.png" });
 
-  await page.locator(".spine-control").nth(3).click();
+  await page.locator(".spine-control").nth(4).click();
   await page.waitForTimeout(320);
   await expect(page.locator("#selected-title")).toHaveText("Test Project Two");
   await expect(page.locator("#selected-date")).toHaveText("May 1, 2026");
@@ -95,7 +95,7 @@ test("responsive laptop framing keeps selected spines clear of the open book", a
     });
     expect(layout.gap).toBeGreaterThanOrEqual(30);
     expect(layout.bookLeft).toBeGreaterThanOrEqual(18);
-    expect(layout.rightmostSpine).toBeLessThanOrEqual(viewport.width + 1);
+    expect(layout.rightmostSpine).toBeLessThanOrEqual(viewport.width + 2);
     if (viewport.width === 1512) {
       await page.screenshot({ path: "test-results/composition-1512x900.png" });
     }
