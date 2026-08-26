@@ -8,15 +8,20 @@ const directText = (el, selector, fallback = "") => el.querySelector(`:scope > $
 
 function readPage(element, fallbackSlug = "") {
   const link = element.querySelector(":scope > a");
+  const contents = Array.from(
+    element.querySelectorAll(":scope > .record-summary .record-contents > li"),
+    (item, index) => `${index + 1}. ${item.textContent.trim()}`
+  );
   return {
     slug: element.dataset.slug || fallbackSlug,
     type: directText(element, ".record-type", "Project"),
     title: directText(element, "h2, h3", "Untitled project"),
     date: directText(element, "time", "Undated"),
-    summary: directText(element, ".record-summary"),
+    summary: contents.length ? contents.join("\n") : directText(element, ".record-summary"),
     details: directText(element, ".record-details"),
     href: link?.getAttribute("href") || "",
-    linkText: link?.textContent.trim() || "Open project"
+    linkText: link?.textContent.trim() || "Open project",
+    layout: element.dataset.layout || "project"
   };
 }
 
@@ -149,6 +154,7 @@ async function initializeDesktopStudy() {
       const page = record.pages[index];
       pageIndex = index;
       rememberedPages.set(selectedIndex, index);
+      readingBook.dataset.pageLayout = page.layout;
       for (const key of ["type", "title", "date", "summary", "details"]) fields[key].textContent = page[key];
       fields.link.hidden = !page.href;
       if (page.href) {
@@ -157,7 +163,8 @@ async function initializeDesktopStudy() {
       } else fields.link.removeAttribute("href");
       updatePageControls(record, index);
       document.title = record.kind === "info" ? DEFAULT_TITLE
-        : record.pages.length > 1 ? `${page.title} — ${record.title}` : `${page.title} — Michael McNicholas`;
+        : page.layout === "contents" ? `${record.title} — Michael McNicholas`
+          : record.pages.length > 1 ? `${page.title} — ${record.title}` : `${page.title} — Michael McNicholas`;
       readingBook.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
       if (animate && !reducedMotionQuery.matches) {
         readingBook.querySelectorAll(".reading-page").forEach((element, side) => element.animate(

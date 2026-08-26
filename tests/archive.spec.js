@@ -12,8 +12,9 @@ test.describe("semantic archive", () => {
     await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
     const collection = page.locator(".collection-record");
     await expect(collection.locator(":scope > h2")).toHaveText("Extra Projects");
-    await expect(collection.locator(".project-page")).toHaveCount(2);
-    await expect(collection.locator(".project-page").first().locator("a")).toHaveAttribute("href", "projects/boolean-logic/index.html");
+    await expect(collection.locator(".project-page")).toHaveCount(3);
+    await expect(collection.locator(".project-page").first().locator(":scope > a")).toHaveAttribute("href", "projects/extra-projects/index.html");
+    await expect(collection.locator(".project-page").nth(1).locator(":scope > a")).toHaveAttribute("href", "projects/boolean-logic/index.html");
     await expect(collection.locator(".project-page").last().locator("a")).toHaveAttribute("href", "projects/generative-tree/index.html");
   });
 
@@ -36,7 +37,7 @@ test("the JavaScript-enabled phone experience remains the complete archive", asy
   await expect(page.locator("#archive")).toBeVisible();
   await expect(page.locator("#study")).toBeHidden();
   await expect(page.locator(".project-record:not(.information-record)")).toHaveCount(1);
-  await expect(page.locator(".collection-record .project-page")).toHaveCount(2);
+  await expect(page.locator(".collection-record .project-page")).toHaveCount(3);
   const dimensions = await page.evaluate(() => ({
     innerWidth: window.innerWidth,
     scrollWidth: document.documentElement.scrollWidth

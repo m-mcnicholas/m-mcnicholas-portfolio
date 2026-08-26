@@ -238,6 +238,16 @@ a { color: inherit; }
   text-shadow: 0 0 0.35px #3c2b1e;
 }
 
+.reading-book[data-page-layout="contents"] .selected-summary {
+  white-space: pre-line;
+  font-size: clamp(0.94rem, 1.22vw, 1.12rem);
+  line-height: 1.8;
+}
+
+.reading-book[data-page-layout="contents"] .selected-details strong {
+  color: #7a4938;
+}
+
 .destination-card {
   position: absolute;
   z-index: 2;
@@ -633,6 +643,23 @@ a { color: inherit; }
   text-decoration: none;
 }
 .project-page > a:hover { color: #7a4938; }
+
+.collection-home-page .record-summary {
+  grid-column: 1 / -1;
+  grid-area: auto;
+}
+
+.collection-home-page .record-summary > p {
+  color: #7a4938;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.record-contents { margin: 0.55rem 0 0; padding-left: 1.4rem; }
+.record-contents li + li { margin-top: 0.35rem; }
+.record-contents a { font-family: var(--serif); font-weight: 700; text-underline-offset: 0.2em; }
 
 .information-record { border-left-color: #a88a4a; }
 .information-record .record-summary { grid-column: summary / link; }
