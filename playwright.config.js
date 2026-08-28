@@ -5,6 +5,7 @@ const serverPort = Number(process.env.PLAYWRIGHT_PORT || 4173);
 
 export default defineConfig({
   testDir: "./tests",
+  testMatch: "**/*.spec.js",
   fullyParallel: false,
   reporter: "line",
   use: {

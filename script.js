@@ -1,4 +1,3 @@
-import { createStudyScene } from "./scene.js";
 import { getBindingProfile } from "./bindings.js";
 
 const desktopQuery = matchMedia("(min-width: 1100px) and (min-height: 650px)");
@@ -90,6 +89,7 @@ async function initializeDesktopStudy() {
   if (!readingBook || !showArchive || spineControls.length !== records.length) return;
 
   try {
+    const { createStudyScene } = await import("./scene.js");
     const scene = createStudyScene(records, ({ book, spines, drawer }) => {
       for (const [name, value] of Object.entries(book)) readingBook.style.setProperty(`--book-${name}`, `${value}px`);
       spineControls.forEach((button, index) => Object.assign(button.style, {

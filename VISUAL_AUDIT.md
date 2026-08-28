@@ -13,7 +13,7 @@ Fresh renders were inspected before visual source edits:
 - `test-results/archive-mobile-no-js.png`
 - `test-results/baseline-mobile-js.png`
 
-The baseline production build completed. Playwright completed with 22 passing tests and one expected project-filter skip. The first sandboxed attempt could not bind the preview port; the authorized rerun passed.
+The baseline production build and the then-current Playwright collection completed. This is a historical visual snapshot; current test inventory belongs to `npx playwright test --list` and CI.
 
 ## Initial independent visual audit
 

@@ -63,9 +63,9 @@ JavaScript failure, module failure, validation failure, WebGL creation failure, 
 - Reduced motion skips both page and Three.js selection motion.
 - The no-JavaScript archive preserves every title, date, summary, detail, and destination.
 
-## Automated verification performed
+## Automated verification
 
-The final production build and Playwright Chromium checks were run against the Vite development server at 1280 × 720 and an emulated iPhone 13 viewport. The final run completed with 22 passing tests and one expected project-filter skip.
+CI runs `npm run test:logic`, `npm run build`, and `npm run test:e2e` before the Pages artifact can be uploaded. Playwright discovers only `*.spec.js`; Node logic tests remain in `*.test.js`. Use `npx playwright test --list` for the current browser-test count rather than recording a total here, since the collection changes with the projects.
 
 | Check | Observed result |
 | --- | --- |
@@ -105,7 +105,7 @@ The generated 1280 × 720 initial and selected-project screenshots and the 1512 
 - Automated accessibility assertions verify semantics, focusable native controls, keyboard behavior, pressed state, and announcements, but a named screen reader was not manually operated. Test VoiceOver, NVDA, or JAWS before a formal accessibility certification.
 - Chromium was the available rendered browser engine. Safari, Firefox, Edge, physical iOS, and physical Android were not directly tested in this environment.
 - Headless Chromium uses software WebGL, so final GPU performance should be spot-checked on target school hardware.
-- Vite reports that the bundled Three.js application chunk is about 539kB minified (about 140kB gzip), above its default 500kB warning threshold. The two optional material albedos total about 648kB and retain generated fallbacks. The semantic fallback remains immediate HTML/CSS and the desktop renderer is still a single route; code splitting was not introduced solely to silence the warning.
+- Vite reports that the shared Three.js library chunk is about 522kB minified. The portfolio does not request it until the desktop enhancement media query passes; the forest route still requires it. The two optional material albedos total about 648kB and retain generated fallbacks.
 - The six project records and their destination gallery are examples, not authoritative finished coursework. Replace them as real projects become available.
 - Current copy fits the page. Significantly longer future titles or descriptions require a 1280 × 720 readability inspection.
 
@@ -115,4 +115,4 @@ A new screenshot-first audit was completed before source edits at 1280 × 720, 1
 
 The most important correction was systemic: the old project-volume body enclosed its nominal paper mesh, so rendered ends remained binding-colored even though a paper object existed in code. The stack now builds thin upper/lower boards around an inset paper block and adds the spine separately. The open-book top leaf was also raised above the lower text block after rendered comparison proved its sagging outer area was being occluded by the block, creating the previous giant crescent artifact.
 
-The final production build succeeds with the existing Vite size warning. The final Chromium run remains 22 passing tests and one expected project-filter skip. Final checks covered composition, all records, rapid selection, keyboard operation, visible focus, reduced motion, archive switching, forced initialization failure, context loss, narrow-screen/mobile fallback, no JavaScript, injected eighth and ten-volume fixtures, failed requests, console errors, transparent semantic surfaces, binding determinism, texture limits, pixel-ratio cap, and idle rendering.
+The production build succeeds with the expected shared Three.js size warning. The maintained browser checks cover composition, all records, rapid selection, keyboard operation, visible focus, reduced motion, archive switching, forced initialization failure, context loss, narrow-screen/mobile fallback, no JavaScript, injected eighth and ten-volume fixtures, failed requests, console errors, transparent semantic surfaces, binding determinism, texture limits, pixel-ratio cap, and idle rendering.
