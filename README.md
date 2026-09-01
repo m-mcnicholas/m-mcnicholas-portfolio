@@ -71,7 +71,28 @@ npm run test:e2e
 | `tests/` | Playwright checks for composition, interaction, no-JavaScript behavior, responsiveness, maintainability, and WebGL recovery |
 | `vite.config.js` | Relative deployment paths and the production entry point |
 
-Cipher Twins keeps its peer-message schema and board reducer in `projects/cipher-twins/protocol.js`. The host serializes level-scoped board operations and publishes revisions; generated `role-a.js` and `role-b.js` banks replace hundreds of production chunks while preserving role-specific loading. Run `npm run generate:word-banks` after changing any `w###.[ab].js` source file.
+Cipher Twins is a two-player cooperative invented-language game. Its backend-free
+core lives in `projects/cipher-twins/core/`:
+
+- `revision.js` — versioned, host-authoritative shared state and a pure reducer
+  (see `core/README.md` for the invariants it guarantees);
+- `messages.js` — the operation / broadcast wire protocol with strict
+  field-whitelisting and a forbidden-key guard;
+- `commitments.js` — salted SHA-256 guess commitments; a plaintext guess or a
+  private letter never crosses the wire, a snapshot, or a log;
+- `palette.js` / `scoring.js` — the monotonic icon-unlock schedule with
+  alternating letter-ownership parity, and cooperative efficiency stars;
+- `transport.js` — a deterministic in-process `LoopbackChannel` for tests;
+  `local-bridge.js` — a same-machine `BroadcastChannel` transport (`?local=CODE`);
+- `session.js` — `GameHost` / `GameClient`, which `app.js` renders.
+
+`words/bank.js` is the curated active pool — 2 tutorial words plus seven tiers of
+twelve, metadata only. Odd/even letter slices live in `words/bank-odd.js` /
+`words/bank-even.js` and are fetched per round by whichever player holds that
+parity. Regenerate all three with `npm run generate:cipher-bank`; the full
+reserve pool (`w###.[ab].js`, rebuilt with `npm run generate:word-banks`) is the
+source it curates from. FAMILIARITY and the scoring pars are provisional pending
+playtest tuning.
 
 Three.js `0.180.0` is installed locally through npm and bundled by Vite. The released site has no CDN, remote font, or remote texture dependency. Most material maps are generated locally during scene initialization at 256–512px and disposed with the renderer. Two 1024px generated albedos (about 633kB total) are bundled under `assets/textures/` for walnut and rag paper.
 

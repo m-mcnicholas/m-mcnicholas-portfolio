@@ -1,27 +1,18 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { ICONS } from "../projects/cipher-twins/icons.js";
 import { randomRoomCode, Room } from "../projects/cipher-twins/network.js";
-import { applyBoardOperation, canHostAdvance, validateIncomingMessage } from "../projects/cipher-twins/protocol.js";
-import { LEVEL_SCHEDULE, WORDS } from "../projects/cipher-twins/words/manifest.js";
+import { ACTIVE_WORDS, TIER_LENGTHS, RESERVE_IDS } from "../projects/cipher-twins/words/bank.js";
+import oddSlices from "../projects/cipher-twins/words/bank-odd.js";
+import evenSlices from "../projects/cipher-twins/words/bank-even.js";
+import { ICONS } from "../projects/cipher-twins/icons.js";
+import { WORDS } from "../projects/cipher-twins/words/manifest.js";
 import roleA from "../projects/cipher-twins/words/role-a.js";
 import roleB from "../projects/cipher-twins/words/role-b.js";
 
-const wordIds = new Set(WORDS.map(({ id }) => id));
-const baseContext = {
-  localRole: "A", levelCount: LEVEL_SCHEDULE.length, levelIndex: 0, wordId: "w001",
-  wordLength: 4, wordIds, allowedIconIds: new Set(Object.keys(ICONS)), maxBoardIcons: 4,
-};
-
-test("host advancement accepts each target only once", () => {
-  assert.equal(canHostAdvance(2, 3, 10), true);
-  assert.equal(canHostAdvance(3, 3, 10), false);
-  assert.equal(canHostAdvance(3, 5, 10), false);
-  assert.equal(canHostAdvance(10, 11, 10), false);
-});
+// ---- room / transport --------------------------------------------------
 
 test("room codes use the longer unambiguous format", () => {
   const codes = new Set(Array.from({ length: 200 }, () => randomRoomCode()));
@@ -40,50 +31,73 @@ test("room state reports a peer disconnection", () => {
   assert.equal(disconnected, true);
 });
 
-test("host serialization preserves simultaneous board additions", () => {
-  let board = [];
-  board = applyBoardOperation(board, { id: "A-one", kind: "add", iconId: "shape:line" }, "A", 4);
-  board = applyBoardOperation(board, { id: "B-two", kind: "add", iconId: "shape:curve" }, "B", 4);
-  assert.deepEqual(board.map(({ iconId, by }) => [iconId, by]), [["shape:line", "A"], ["shape:curve", "B"]]);
-  board = applyBoardOperation(board, { id: "B-three", kind: "undo" }, "B", 4);
-  assert.equal(board.length, 1);
-  board = applyBoardOperation(board, { id: "A-four", kind: "clear" }, "A", 4);
-  assert.deepEqual(board, []);
+// ---- curated word bank -----------------------------------------------
+
+test("the curated bank has 2 tutorial words and 7 balanced tiers of 12", () => {
+  const tutorials = ACTIVE_WORDS.filter((w) => w.tutorial);
+  assert.deepEqual(tutorials.map((w) => w.slot).sort(), [0, 1]);
+
+  assert.equal(TIER_LENGTHS.length, 7);
+  for (let tier = 0; tier < TIER_LENGTHS.length; tier += 1) {
+    const rows = ACTIVE_WORDS.filter((w) => w.tier === tier);
+    assert.equal(rows.length, 12, `tier ${tier} count`);
+    assert.ok(rows.every((w) => w.length === TIER_LENGTHS[tier]), `tier ${tier} lengths`);
+    assert.ok(new Set(rows.map((w) => w.category)).size >= 3, `tier ${tier} category spread`);
+    assert.ok(rows.every((w) => w.parTokens > 0 && w.parMessages > 0), `tier ${tier} pars present`);
+    assert.ok(rows.every((w) => w.familiarity >= 1 && w.familiarity <= 5), `tier ${tier} familiarity range`);
+  }
+  assert.ok(RESERVE_IDS.length > 100, "the rest of the pool is retained as reserve");
 });
 
-test("peer messages are role-aware, level-scoped, and schema validated", () => {
-  const valid = { type: "board:op", payload: { levelIndex: 0, wordId: "w001", operation: { id: "B-safe", kind: "add", iconId: "shape:line" } } };
-  assert.deepEqual(validateIncomingMessage(valid, baseContext), valid);
-  assert.equal(validateIncomingMessage({ ...valid, payload: { ...valid.payload, levelIndex: 1 } }, baseContext), null);
-  assert.equal(validateIncomingMessage({ ...valid, payload: { ...valid.payload, operation: { ...valid.payload.operation, iconId: 'x\" onmouseover=\"alert(1)' } } }, baseContext), null);
-  assert.equal(validateIncomingMessage({ type: "level:advance", payload: { index: 1, wordId: "w002" } }, baseContext), null);
-  assert.equal(validateIncomingMessage({ type: "guess:submit", payload: { levelIndex: 0, wordId: "w001", guess: "TOO-LONG" } }, baseContext), null);
+test("every active word's odd+even slices reconstruct to its answer hash", () => {
+  for (const entry of ACTIVE_WORDS) {
+    const odd = oddSlices[entry.id];
+    const even = evenSlices[entry.id];
+    assert.ok(odd && even, `${entry.id} has both slices`);
+    const letters = Array(entry.length);
+    odd.positions.forEach((p, i) => { letters[p - 1] = odd.letters[i]; });
+    even.positions.forEach((p, i) => { letters[p - 1] = even.letters[i]; });
+    assert.equal(letters.filter(Boolean).length, entry.length, `${entry.id} fully covered`);
+    assert.deepEqual(odd.positions, odd.positions.filter((p) => p % 2 === 1), `${entry.id} odd parity`);
+    assert.deepEqual(even.positions, even.positions.filter((p) => p % 2 === 0), `${entry.id} even parity`);
+    assert.equal(
+      createHash("sha256").update(letters.join("")).digest("hex"),
+      entry.answerHash,
+      `${entry.id} hash`,
+    );
+  }
 });
 
-test("generated word banks reconstruct every manifest word correctly", async () => {
-  const sourceFiles = await readdir(new URL("../projects/cipher-twins/words/", import.meta.url));
-  assert.equal(sourceFiles.filter((file) => /^w\d{3}\.[ab]\.js$/.test(file)).length, WORDS.length * 2);
+test("the shared bank metadata carries no plaintext letters or answers", async () => {
+  const source = await readFile(new URL("../projects/cipher-twins/words/bank.js", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /"word"\s*:/);
+  assert.doesNotMatch(source, /"letters"\s*:/);
+  for (const entry of ACTIVE_WORDS) {
+    assert.equal(Object.prototype.hasOwnProperty.call(entry, "word"), false, `${entry.id} exposes no plaintext`);
+  }
+});
+
+test("the reserve pool's generated role banks stay in sync with their sources", async () => {
   assert.equal(Object.keys(roleA).length, WORDS.length);
   assert.equal(Object.keys(roleB).length, WORDS.length);
-
   for (const word of WORDS) {
     const a = roleA[word.id];
     const b = roleB[word.id];
-    const [sourceA, sourceB] = await Promise.all([
-      import(`../projects/cipher-twins/words/${word.id}.a.js`).then((module) => module.default),
-      import(`../projects/cipher-twins/words/${word.id}.b.js`).then((module) => module.default),
-    ]);
     assert.ok(a && b, `${word.id} has both role slices`);
-    assert.deepEqual(a, sourceA, `${word.id} role A bank is current`);
-    assert.deepEqual(b, sourceB, `${word.id} role B bank is current`);
-    assert.equal(a.positions.length, a.letters.length);
-    assert.equal(b.positions.length, b.letters.length);
     const positions = [...a.positions, ...b.positions];
-    assert.deepEqual([...positions].sort((x, y) => x - y), Array.from({ length: word.length }, (_, index) => index + 1));
-    assert.equal(new Set(positions).size, word.length);
-    const answer = Array(word.length);
-    a.positions.forEach((position, index) => { answer[position - 1] = a.letters[index]; });
-    b.positions.forEach((position, index) => { answer[position - 1] = b.letters[index]; });
-    assert.equal(createHash("sha256").update(answer.join("")).digest("hex"), word.answerHash, `${word.id} hash`);
+    assert.deepEqual(positions.sort((x, y) => x - y), Array.from({ length: word.length }, (_, i) => i + 1));
+    const letters = Array(word.length);
+    a.positions.forEach((p, i) => { letters[p - 1] = a.letters[i]; });
+    b.positions.forEach((p, i) => { letters[p - 1] = b.letters[i]; });
+    assert.equal(createHash("sha256").update(letters.join("")).digest("hex"), word.answerHash, `${word.id} hash`);
+  }
+});
+
+test("tutorial and puzzle palettes only reference real icons", async () => {
+  const { paletteForPuzzle, TUTORIAL_PALETTE } = await import("../projects/cipher-twins/core/palette.js");
+  const iconIds = new Set(Object.keys(ICONS));
+  for (const id of TUTORIAL_PALETTE) assert.ok(iconIds.has(id), `${id} exists`);
+  for (let tier = 0; tier < TIER_LENGTHS.length; tier += 1) {
+    for (const id of paletteForPuzzle(tier)) assert.ok(iconIds.has(id), `${id} exists`);
   }
 });

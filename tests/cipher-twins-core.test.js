@@ -26,10 +26,10 @@ const HEX_B = "b".repeat(64);
 
 // A deterministic word source: lengths follow the 4,4,5,5,6,7,8 curve.
 const LENGTHS = [4, 4, 5, 5, 6, 7, 8];
-const stubWord = ({ puzzleIndex, runNumber }) => ({
-  wordId: `w-p${puzzleIndex}-r${runNumber}`,
-  wordLength: LENGTHS[puzzleIndex],
-  category: ["animal", "object", "nature", "food"][puzzleIndex % 4],
+const stubWord = ({ tutorial, index = 0, runNumber = 1 }) => ({
+  wordId: tutorial ? `tut-${index}` : `w-p${index}-r${runNumber}`,
+  wordLength: tutorial ? 4 : LENGTHS[index],
+  category: tutorial ? "animal" : ["animal", "object", "nature", "food"][index % 4],
 });
 const ctx = (over = {}) => ({ newId: makeIdFactory(), nextWord: stubWord, now: 1_000, ...over });
 
@@ -349,6 +349,22 @@ test("every puzzle transition keeps the palette monotonic and flips ownership", 
   rev.lastOutcome = { status: COMMITMENT_STATUS.SOLVED, puzzleIndex: PUZZLE_COUNT - 1, attempt: 1, agree: true };
   rev = reduce(rev, { type: "level:advance", payload: { fromPhase: "reveal", fromIndex: PUZZLE_COUNT - 1 } }, "A", c).revision;
   assert.equal(rev.phase, "complete");
+});
+
+test("a tutorial guess resolves inline without scoring or leaving the exercise", () => {
+  let rev = createInitialRevision();
+  const c = ctx();
+  rev = reduce(rev, { type: "level:advance", payload: { fromPhase: "lobby", fromIndex: null } }, "A", c).revision;
+  assert.equal(rev.phase, "tutorial");
+  assert.equal(rev.wordId, "tut-0", "the tutorial carries a real word to practise on");
+
+  rev = reduce(rev, { type: "guess:commit", payload: { commitment: HEX_A } }, "A", c).revision;
+  rev = reduce(rev, { type: "guess:commit", payload: { commitment: HEX_A } }, "B", { ...c, localGuessCorrect: true }).revision;
+  assert.equal(rev.phase, "tutorial", "a tutorial does not advance to a reveal");
+  assert.equal(rev.lastOutcome.status, COMMITMENT_STATUS.SOLVED);
+  assert.equal(rev.lastOutcome.tutorial, true);
+  assert.deepEqual(rev.attempts, {}, "tutorial guesses are never counted as attempts");
+  assert.deepEqual(rev.stars, {});
 });
 
 test("a unanimous skip vote jumps straight to the first puzzle", () => {
