@@ -29,6 +29,27 @@ npm run preview
 
 Deploy the contents of `dist/`. Vite uses relative production asset URLs, so the output can be hosted at a domain root or a nested static-hosting path.
 
+### Play Cipher Twins across two computers on the same network
+
+Cipher Twins needs one browser per player. To try it on two machines on the
+same Wi-Fi or LAN without deploying:
+
+```sh
+npm run preview:lan   # builds, then serves the production output on every interface
+npm run dev:lan        # skips the build and serves the live dev server instead
+```
+
+Each command prints a `http://<this-machine-ip>:<port>/projects/cipher-twins/`
+address. Open that address on the other computer, one player hosts, the other
+joins with the room code.
+
+Loading the page only needs the local network. Connecting the two players still
+needs outbound internet on both machines, because the WebRTC handshake uses the
+public PeerJS broker and STUN/TURN servers described in
+`projects/cipher-twins/network.js`. If a computer cannot reach the preview
+address, allow Node through its firewall or check for a VPN capturing local
+traffic.
+
 Run the rendered browser checks:
 
 ```sh

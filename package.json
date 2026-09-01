@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "preview:lan": "node scripts/preview-lan.mjs",
+    "dev:lan": "node scripts/preview-lan.mjs --dev",
     "generate:word-banks": "node scripts/build-word-banks.mjs",
     "check": "node scripts/check-repository.mjs",
     "test:logic": "node --test tests/*.test.js",
