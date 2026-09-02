@@ -84,7 +84,15 @@ core lives in `projects/cipher-twins/core/`:
   alternating letter-ownership parity, and cooperative efficiency stars;
 - `transport.js` — a deterministic in-process `LoopbackChannel` for tests;
   `local-bridge.js` — a same-machine `BroadcastChannel` transport (`?local=CODE`);
-- `session.js` — `GameHost` / `GameClient`, which `app.js` renders.
+- `session.js` — `GameHost` / `GameClient` (with bounded op-log delta sync),
+  which `app.js` renders;
+- `bot-demo.js` — the scripted solo demo reached with `?demo=1`.
+
+Recovery is best-effort: `app.js` mirrors the host snapshot and both identities
+into `sessionStorage`, the lobby offers a *Reconnect* affordance, a host can
+reclaim its room id, and a `#recovery-panel` offers *Retry / Return to lobby /
+Start a new room* when a reconnect fails. Run the two-page e2e with system
+Chrome: `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- tests/cipher-twins.spec.js`.
 
 `words/bank.js` is the curated active pool — 2 tutorial words plus seven tiers of
 twelve, metadata only. Odd/even letter slices live in `words/bank-odd.js` /

@@ -17,6 +17,7 @@ import {
 } from "../projects/cipher-twins/core/messages.js";
 import {
   createInitialRevision, operationContext, reduce, snapshot, prepareRecovery,
+  syncResponse, applyDelta, DELTA_SAFE_OPS,
 } from "../projects/cipher-twins/core/revision.js";
 import { createLoopbackPair } from "../projects/cipher-twins/core/transport.js";
 import { GameHost, GameClient } from "../projects/cipher-twins/core/session.js";
@@ -414,6 +415,47 @@ test("snapshots drop presence and refuse forbidden fields; recovery clears commi
   assert.equal(recovered.version, working.version + 1);
 });
 
+// ------------------------------------------------------------ delta sync
+
+test("a short lag is caught up with a delta of safe ops; anything else forces a full snapshot", () => {
+  const { rev: start, c } = advanceToPuzzle(0);
+  const base = start.version;
+  let working = start;
+  const log = [];
+  const applySafe = (op, actor) => {
+    working = reduce(working, op, actor, c).revision;
+    log.push({ version: working.version, type: op.type, payload: op.payload, actor });
+  };
+  applySafe({ type: "message:send", payload: { clientId: "A-1", tokens: [{ kind: "icon", id: "shape:line" }], replyTo: null } }, "A");
+  applySafe({ type: "message:send", payload: { clientId: "B-1", tokens: [{ kind: "icon", id: "count:1" }], replyTo: null } }, "B");
+
+  const response = syncResponse(working, base, log);
+  assert.equal(response.mode, "delta");
+  assert.equal(response.fromVersion, base);
+  assert.equal(response.toVersion, working.version);
+  assert.ok(response.ops.every((o) => DELTA_SAFE_OPS.has(o.type)));
+
+  const replayed = applyDelta(start, response.ops);
+  assert.equal(replayed.ok, true);
+  assert.equal(replayed.revision.version, working.version);
+  assert.deepEqual(replayed.revision.messages.map((m) => m.author), ["A", "B"]);
+
+  // A commit in the missed range is not delta-safe -> full snapshot instead.
+  working = reduce(working, { type: "guess:commit", payload: { commitment: HEX_A } }, "A", c).revision;
+  const withCommit = [...log, { version: working.version, type: "guess:commit", payload: { commitment: HEX_A }, actor: "A" }];
+  assert.equal(syncResponse(working, base, withCommit).mode, "full");
+});
+
+test("applyDelta rejects a tampered op and leaves the revision untouched", () => {
+  const { rev: start } = advanceToPuzzle(0);
+  const validate = (op, actor) => validateOperation(op, operationContext(start, actor));
+  const bad = applyDelta(start, [
+    { type: "message:send", payload: { clientId: "not a valid id!!", tokens: [{ kind: "icon", id: "shape:line" }], replyTo: null }, actor: "A" },
+  ], validate);
+  assert.equal(bad.ok, false);
+  assert.equal(bad.revision, start);
+});
+
 // -------------------------------------------------- paired loopback flows
 
 function pairedSession(extra = {}) {
@@ -524,6 +566,32 @@ test("paired flow: disconnect and rejoin resyncs and forces a recommit", async (
   assert.equal(client.revision.version, host.revision.version);
   assert.deepEqual(host.revision.commitments, { A: null, B: null }, "the stale commitment is gone");
   for (const entry of secretsSeen) assert.equal(containsForbiddenKey(entry.message), false);
+});
+
+test("paired flow: a dropped broadcast is recovered by a delta, not a full snapshot", () => {
+  const { channel, host, client } = pairedSession();
+  host.dispatchLocal({ type: "level:advance", payload: { fromPhase: "lobby", fromIndex: null } });
+  host.dispatchLocal({ type: "tutorial:skipVote", payload: { vote: true } });
+  client.send("tutorial:skipVote", { vote: true });
+  channel.flush();
+  const syncedVersion = client.revision.version;
+
+  // Host sends two cards, but the joiner never receives those broadcasts.
+  host.dispatchLocal({ type: "message:send", payload: { clientId: "A-d1", tokens: [{ kind: "icon", id: "shape:line" }], replyTo: null } });
+  host.dispatchLocal({ type: "message:send", payload: { clientId: "A-d2", tokens: [{ kind: "icon", id: "count:2" }], replyTo: null } });
+  channel.queue.length = 0; // the two revision:full broadcasts are lost
+
+  let deltaSeen = 0;
+  const originalDispatch = channel._dispatch.bind(channel);
+  channel._dispatch = (entry) => { if (entry.message.type === "revision:delta") deltaSeen += 1; return originalDispatch(entry); };
+
+  client.requestSync();
+  channel.flush();
+
+  assert.equal(deltaSeen, 1, "the host answered with a delta");
+  assert.equal(client.revision.version, host.revision.version);
+  assert.equal(client.revision.version, syncedVersion + 2);
+  assert.deepEqual(client.revision.messages.map((m) => m.tokens[0].id), ["shape:line", "count:2"]);
 });
 
 test("paired flow: an unrecoverable host loss leaves the joiner on the last good snapshot", () => {
