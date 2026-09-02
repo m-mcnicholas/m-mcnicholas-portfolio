@@ -39,11 +39,11 @@ jobs:
       - name: Build site
         run: npm run build
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run browser tests
-        run: npm run test:e2e
+      # Browser (Playwright) tests run in the separate ci.yml workflow, not here.
+      # The Three.js desktop-scene specs need a GPU the Pages runner does not
+      # have, so gating deployment on them left the live site stuck for weeks.
+      # Deployment is gated on the deterministic checks above (logic tests, the
+      # repository/link check, and a clean production build).
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
