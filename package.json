@@ -7,16 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "preview:lan": "node scripts/preview-lan.mjs",
-    "dev:lan": "node scripts/preview-lan.mjs --dev",
-    "generate:word-banks": "node scripts/build-word-banks.mjs",
-    "generate:cipher-bank": "node scripts/build-cipher-bank.mjs",
     "check": "node scripts/check-repository.mjs",
     "test:logic": "node --test tests/*.test.js",
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "peerjs": "^1.5.5",
     "three": "0.180.0"
   },
   "devDependencies": {

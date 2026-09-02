@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const pages = ["/index.html", "/projects/extra-projects/index.html", "/projects/generative-tree/index.html", "/projects/boolean-logic/index.html", "/projects/cipher-twins/index.html"];
+const pages = ["/index.html", "/projects/extra-projects/index.html", "/projects/generative-tree/index.html", "/projects/boolean-logic/index.html"];
 
 for (const path of pages) {
   test(`accessibility essentials hold for ${path}`, async ({ page }) => {
