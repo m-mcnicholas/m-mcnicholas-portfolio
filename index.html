@@ -53,14 +53,14 @@
 
 
         <button class="page-turn-tab page-turn-previous" id="page-previous" type="button" aria-label="Previous project page" hidden>
-          <span aria-hidden="true">←</span><span class="visually-hidden">Previous project page</span>
+          <span aria-hidden="true">← Previous page</span>
         </button>
         <button class="page-turn-tab page-turn-next" id="page-next" type="button" aria-label="Next project page" hidden>
-          <span aria-hidden="true">→</span><span class="visually-hidden">Next project page</span>
+          <span aria-hidden="true">Next page →</span>
         </button>
       </article>
 
-      <section class="volume-selector" aria-labelledby="volume-heading">
+      <section class="volume-selector" aria-label="Project volumes">
         <!-- A desk object, not a page element: sized and positioned to the
              projected face of the 3D drawer front (see updateDomLayout in
              scene.js), not to the page. Kept before .spine-controls so tab
@@ -68,10 +68,6 @@
              the individual spines. -->
         <a class="archive-drawer" id="show-archive" href="#archive" aria-label="Open the complete project archive"></a>
 
-        <header class="shelf-label">
-          <h2 id="volume-heading">Project volumes</h2>
-          <p>Choose a labeled spine</p>
-        </header>
         <div class="spine-controls" id="spine-controls" role="toolbar" aria-label="Project volumes, newest at the top"></div>
       </section>
 
@@ -98,9 +94,21 @@
           data-accent="#d8b968">
           <p class="record-type">About this archive</p>
           <h2>Michael McNicholas</h2>
-          <time datetime="2025">2026–2027</time>
+          <time datetime="2026">2026–2027</time>
           <p class="record-summary">And some of his projects.</p>
           <p class="record-details">Software Engineering with AI</p>
+        </article>
+
+        <article class="project-record"
+          data-kind="project"
+          data-color="#241f3d"
+          data-accent="#f2c14e">
+          <p class="record-type">School project · Multiplayer puzzle</p>
+          <h2>Cipher Twins</h2>
+          <time datetime="2026-08-26">August 26, 2026</time>
+          <p class="record-summary">A 2-player asymmetric co-op word puzzle: each player sees a different, incomplete slice of a hidden word's letters and must reconstruct it with a partner using only a shared icon palette — no typing, no spelling.</p>
+          <p class="record-details">Ten rounds draw from a generated 321-word bank, with each word split by letter position parity so neither player sees every letter. Built serverless with WebRTC room codes (PeerJS) for static hosting; role-specific files and answer hashes provide casual puzzle concealment, not protection against a determined player inspecting public assets.</p>
+          <a href="projects/cipher-twins/index.html">Open Cipher Twins</a>
         </article>
 
         <article class="project-record collection-record"
@@ -110,9 +118,24 @@
           data-accent="#edc16f"
           data-binding="buckram">
           <p class="record-type">Project collection</p>
-          <h2>Extra Projects</h2>
+          <h2><a href="projects/extra-projects/index.html">Extra Projects</a></h2>
           <time datetime="2026-08-24">August 24, 2026</time>
           <div class="collection-pages">
+            <section class="project-page collection-home-page" data-slug="contents" data-layout="contents">
+              <p class="record-type">Project collection · Contents</p>
+              <h3>Extra Projects</h3>
+              <time datetime="2026-08-24">August 24, 2026</time>
+              <div class="record-summary">
+                <p>Table of contents</p>
+                <ol class="record-contents">
+                  <li><a href="projects/boolean-logic/index.html">Boolean Logic Playground</a></li>
+                  <li><a href="projects/generative-tree/index.html">Procedural L-System Forest</a></li>
+                </ol>
+              </div>
+              <p class="record-details"><strong>Quality warning:</strong> These are experimental side projects. They may be rough around the edges, change without notice, or behave differently across devices.</p>
+              <a href="projects/extra-projects/index.html">Open the Extra Projects homepage</a>
+            </section>
+
             <section class="project-page" data-slug="boolean-logic">
               <p class="record-type">School project · Interactive systems</p>
               <h3>Boolean Logic Playground</h3>

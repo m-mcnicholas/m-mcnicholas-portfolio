@@ -29,10 +29,32 @@ npm run preview
 
 Deploy the contents of `dist/`. Vite uses relative production asset URLs, so the output can be hosted at a domain root or a nested static-hosting path.
 
+### Play Cipher Twins across two computers on the same network
+
+Cipher Twins needs one browser per player. To try it on two machines on the
+same Wi-Fi or LAN without deploying:
+
+```sh
+npm run preview:lan   # builds, then serves the production output on every interface
+npm run dev:lan        # skips the build and serves the live dev server instead
+```
+
+Each command prints a `http://<this-machine-ip>:<port>/projects/cipher-twins/`
+address. Open that address on the other computer, one player hosts, the other
+joins with the room code.
+
+Loading the page only needs the local network. Connecting the two players still
+needs outbound internet on both machines, because the WebRTC handshake uses the
+public PeerJS broker and STUN/TURN servers described in
+`projects/cipher-twins/network.js`. If a computer cannot reach the preview
+address, allow Node through its firewall or check for a VPN capturing local
+traffic.
+
 Run the rendered browser checks:
 
 ```sh
 npx playwright install chromium --no-shell
+npm run test:logic
 npm run test:e2e
 ```
 
@@ -41,12 +63,44 @@ npm run test:e2e
 | File | Responsibility |
 | --- | --- |
 | `index.html` | Single semantic source for general information and all project content; also the no-JavaScript/mobile archive |
-| `script.js` | Reads records, initializes enhancement, creates semantic spine buttons, owns selection state, accessibility synchronization, route switching, and failure recovery |
-| `scene.js` | Three.js camera, room, practical lighting, multi-channel procedural materials, book geometry, projected DOM layout, interruptible physical motion, and GPU cleanup |
+| `script.js` | Reads records, lazy-loads the desktop scene after its media query passes, creates semantic spine buttons, owns selection state, accessibility synchronization, route switching, and failure recovery |
+| `scene.js` | Three.js camera, room, practical lighting, book geometry, projected DOM layout, interruptible physical motion, and GPU cleanup |
+| `scene-textures.js` | Procedural color, bump, and roughness texture generation plus PBR material construction |
 | `bindings.js` | Stable project-to-binding profiles shared by the Three.js volumes and semantic spine controls |
 | `styles.css` | Ledger fallback, transparent page typography, physical spine controls, mode switching, focus states, and responsive/reduced-motion rules |
 | `tests/` | Playwright checks for composition, interaction, no-JavaScript behavior, responsiveness, maintainability, and WebGL recovery |
 | `vite.config.js` | Relative deployment paths and the production entry point |
+
+Cipher Twins is a two-player cooperative invented-language game. Its backend-free
+core lives in `projects/cipher-twins/core/`:
+
+- `revision.js` — versioned, host-authoritative shared state and a pure reducer
+  (see `core/README.md` for the invariants it guarantees);
+- `messages.js` — the operation / broadcast wire protocol with strict
+  field-whitelisting and a forbidden-key guard;
+- `commitments.js` — salted SHA-256 guess commitments; a plaintext guess or a
+  private letter never crosses the wire, a snapshot, or a log;
+- `palette.js` / `scoring.js` — the monotonic icon-unlock schedule with
+  alternating letter-ownership parity, and cooperative efficiency stars;
+- `transport.js` — a deterministic in-process `LoopbackChannel` for tests;
+  `local-bridge.js` — a same-machine `BroadcastChannel` transport (`?local=CODE`);
+- `session.js` — `GameHost` / `GameClient` (with bounded op-log delta sync),
+  which `app.js` renders;
+- `bot-demo.js` — the scripted solo demo reached with `?demo=1`.
+
+Recovery is best-effort: `app.js` mirrors the host snapshot and both identities
+into `sessionStorage`, the lobby offers a *Reconnect* affordance, a host can
+reclaim its room id, and a `#recovery-panel` offers *Retry / Return to lobby /
+Start a new room* when a reconnect fails. Run the two-page e2e with system
+Chrome: `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- tests/cipher-twins.spec.js`.
+
+`words/bank.js` is the curated active pool — 2 tutorial words plus seven tiers of
+twelve, metadata only. Odd/even letter slices live in `words/bank-odd.js` /
+`words/bank-even.js` and are fetched per round by whichever player holds that
+parity. Regenerate all three with `npm run generate:cipher-bank`; the full
+reserve pool (`w###.[ab].js`, rebuilt with `npm run generate:word-banks`) is the
+source it curates from. FAMILIARITY and the scoring pars are provisional pending
+playtest tuning.
 
 Three.js `0.180.0` is installed locally through npm and bundled by Vite. The released site has no CDN, remote font, or remote texture dependency. Most material maps are generated locally during scene initialization at 256–512px and disposed with the renderer. Two 1024px generated albedos (about 633kB total) are bundled under `assets/textures/` for walnut and rag paper.
 
@@ -72,13 +126,13 @@ The enhanced room is enabled only at `1100px` wide or larger and at least `650px
 
 The Three.js perspective camera uses a shallow elevated reading sightline (a responsive `32–35°` field of view, positioned around `(0, 4.08, 14.4)` and aimed near `(0, 2.62, 0.18)`). Pages are modeled in an upright X/Y plane on a lectern. Aspect-ratio breakpoints shift the lectern into available left space and slightly open/recenter the camera on taller laptop screens, preserving a measured gutter before the selected spine.
 
-Important scene logic lives in `scene.js`:
+Scene construction lives in `scene.js`; procedural material generation lives in `scene-textures.js`:
 
 - `addRoom()` builds the desk and leather blotter, asymmetric framed paneling, recessed bookcases, irregular shelf rows, visible library lamp, a generated starry-night framed picture, and restrained inkwell.
 - `addReadingStandAndBook()` builds rounded extruded covers, independently angled page blocks, curved page meshes, layered sheet edges, hinge, contact patch, lectern board, ledge, and support.
 - `addStack()` derives every closed volume from project order and its deterministic binding profile.
 - `updateDomLayout()` projects physical page and spine coordinates into screen-space bounds for the semantic HTML controls.
-- `canvasTexture()`, `textureSet()`, and the `make*Textures()` helpers produce distinct color, bump, and roughness maps for long-grain wood, paper fibers/page edges, calf pores/creases, cloth weave, buckram, and tarnished brass.
+- `scene-textures.js` uses `canvasTexture()`, `textureSet()`, and the `make*Textures()` helpers to produce distinct color, bump, and roughness maps for long-grain wood, paper fibers/page edges, calf pores/creases, cloth weave, buckram, and tarnished brass.
 
 The renderer uses ACES tone mapping, one 1024px shadow map, a warm local lamp falloff, a warm shadow key from the same direction, dim cool ambient fill, and a separate low-intensity stack fill. This avoids the cost of a screen-space post-processing pipeline on integrated graphics. The visible shade, bulb, arm, stem, and base explain the warm page illumination.
 

@@ -273,7 +273,8 @@ function initialize() {
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 1.7, 0);
-  controls.enableDamping = true;
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  controls.enableDamping = !reducedMotion.matches;
   controls.minDistance = 2.4;
   controls.maxDistance = 34;
   controls.maxPolarAngle = Math.PI * 0.51;
@@ -303,6 +304,8 @@ function initialize() {
   scene.add(ground);
 
   let current = null;
+  let animationFrame = 0;
+  let disposed = false;
 
   function clearForest() {
     if (!current) return;
@@ -319,6 +322,7 @@ function initialize() {
     current = buildForest(random);
     scene.add(current.group);
     seedLabel.textContent = `Seed ${seed} · ${current.treeCount} trees · ${current.branchCount} branch segments · ${current.leafCount} leaves`;
+    renderOnce();
   }
 
   function newSeed() {
@@ -331,10 +335,12 @@ function initialize() {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    renderOnce();
   }
 
+  const regenerate = () => grow(newSeed());
   window.addEventListener("resize", resize, { passive: true });
-  regenerateButton.addEventListener("click", () => grow(newSeed()));
+  regenerateButton.addEventListener("click", regenerate);
 
   resize();
   grow(newSeed());
@@ -343,10 +349,17 @@ function initialize() {
   const swayMatrix = new THREE.Matrix4();
   const swayPosition = new THREE.Vector3();
   const swayScale = new THREE.Vector3();
+  let lastLeafUpdate = -Infinity;
+  function renderOnce() {
+    if (!disposed) renderer.render(scene, camera);
+  }
+
   function animate() {
-    requestAnimationFrame(animate);
+    animationFrame = 0;
+    if (disposed || document.hidden || reducedMotion.matches) return;
     const elapsed = clock.getElapsedTime();
-    if (current) {
+    if (current && elapsed - lastLeafUpdate >= 1 / 30) {
+      lastLeafUpdate = elapsed;
       current.leafAnimations.forEach(({ mesh, bases, phases, quaternions, scales }) => {
         for (let index = 0; index < bases.length; index += 1) {
           const sway = Math.sin(elapsed * 1.4 + phases[index]) * 0.03;
@@ -360,9 +373,82 @@ function initialize() {
       });
     }
     controls.update();
-    renderer.render(scene, camera);
+    renderOnce();
+    animationFrame = requestAnimationFrame(animate);
   }
-  animate();
+
+  function startAnimation() {
+    if (!animationFrame && !disposed && !document.hidden && !reducedMotion.matches) {
+      clock.start();
+      lastLeafUpdate = -Infinity;
+      animationFrame = requestAnimationFrame(animate);
+    }
+  }
+
+  function stopAnimation() {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+    animationFrame = 0;
+    clock.stop();
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) stopAnimation();
+    else if (reducedMotion.matches) renderOnce();
+    else startAnimation();
+  }
+
+  function handleMotionChange() {
+    controls.enableDamping = !reducedMotion.matches;
+    if (reducedMotion.matches) {
+      stopAnimation();
+      renderOnce();
+    } else startAnimation();
+  }
+
+  function dispose({ loseContext = true } = {}) {
+    if (disposed) return;
+    disposed = true;
+    stopAnimation();
+    window.removeEventListener("resize", resize);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    reducedMotion.removeEventListener("change", handleMotionChange);
+    regenerateButton.removeEventListener("click", regenerate);
+    controls.removeEventListener("change", handleControlsChange);
+    renderer.domElement.removeEventListener("webglcontextlost", handleContextLoss);
+    window.removeEventListener("pagehide", handlePageHide);
+    controls.dispose();
+    clearForest();
+    groundGeometry.dispose();
+    groundMaterial.dispose();
+    renderer.renderLists.dispose();
+    renderer.dispose();
+    if (loseContext) renderer.forceContextLoss();
+    renderer.domElement.remove();
+  }
+
+  function handleContextLoss(event) {
+    event.preventDefault();
+    fallback.hidden = false;
+    fallback.textContent = "The WebGL context was lost. Reload this page to regrow the forest.";
+    regenerateButton.disabled = true;
+    dispose({ loseContext: false });
+  }
+
+  function handlePageHide() {
+    dispose();
+  }
+
+  function handleControlsChange() {
+    if (reducedMotion.matches) renderOnce();
+  }
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  reducedMotion.addEventListener("change", handleMotionChange);
+  controls.addEventListener("change", handleControlsChange);
+  renderer.domElement.addEventListener("webglcontextlost", handleContextLoss);
+  window.addEventListener("pagehide", handlePageHide, { once: true });
+  if (reducedMotion.matches) renderOnce();
+  else startAnimation();
 }
 
 initialize();

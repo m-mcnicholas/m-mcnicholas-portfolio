@@ -1,13 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const chromiumChannel = process.env.PLAYWRIGHT_CHANNEL || "chromium";
+const serverPort = Number(process.env.PLAYWRIGHT_PORT || 4173);
 
 export default defineConfig({
   testDir: "./tests",
+  testMatch: "**/*.spec.js",
   fullyParallel: false,
   reporter: "line",
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: `http://127.0.0.1:${serverPort}`,
     trace: "retain-on-failure",
     launchOptions: {
       args: ["--disable-features=LocalNetworkAccessChecks,LocalNetworkAccessChecksWebRTC"]
@@ -25,8 +27,8 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 4173",
-    port: 4173,
+    command: `npm run dev -- --host 127.0.0.1 --port ${serverPort}`,
+    port: serverPort,
     reuseExistingServer: true
   }
 });
