@@ -11,8 +11,7 @@ export default defineConfig({
         portfolio: resolve(import.meta.dirname, "index.html"),
         extraProjects: resolve(import.meta.dirname, "projects/extra-projects/index.html"),
         generativeTree: resolve(import.meta.dirname, "projects/generative-tree/index.html"),
-        booleanLogic: resolve(import.meta.dirname, "projects/boolean-logic/index.html"),
-        cipherTwins: resolve(import.meta.dirname, "projects/cipher-twins/index.html")
+        booleanLogic: resolve(import.meta.dirname, "projects/boolean-logic/index.html")
       }
     }
   }
