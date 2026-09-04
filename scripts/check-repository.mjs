@@ -1,10 +1,22 @@
+import { execFile } from "node:child_process";
 import { access, readFile, readdir } from "node:fs/promises";
 import { extname, resolve } from "node:path";
+import { promisify } from "node:util";
 
 const root = resolve(import.meta.dirname, "..");
-const ignoredDirectories = new Set([".git", ".vite", "dist", "node_modules", "playwright-report", "test-results", "secret"]);
+const ignoredDirectories = new Set([".claude", ".git", ".vite", "dist", "node_modules", "playwright-report", "test-results", "secret"]);
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".md", ".mjs", ".yml"]);
+const forbiddenTrackedPath = /^(?:\.claude(?:\/|$)|\.vite(?:\/|$))/;
 const failures = [];
+const execFileAsync = promisify(execFile);
+
+const { stdout: trackedFiles } = await execFileAsync("git", ["ls-files", "-z"], {
+  cwd: root,
+  encoding: "utf8",
+});
+for (const file of trackedFiles.split("\0").filter(Boolean)) {
+  if (forbiddenTrackedPath.test(file)) failures.push(`${file} is generated or local metadata and must not be tracked`);
+}
 
 async function walk(directory) {
   const files = [];
