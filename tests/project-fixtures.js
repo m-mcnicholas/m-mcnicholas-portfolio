@@ -1,6 +1,6 @@
 const names = ["One", "Two", "Three", "Four", "Five", "Six"];
 
-export async function installProjectFixtures(page, count = 6) {
+export async function installProjectFixtures(page, count = 6, detailsOverrides = {}) {
   await page.route("**/test-project.html", async (route) => {
     await route.fulfill({
       contentType: "text/html",
@@ -17,7 +17,7 @@ export async function installProjectFixtures(page, count = 6) {
           <h2>Test Project ${name}</h2>
           <time datetime="2026-0${6 - index}-01">${["June", "May", "April", "March", "February", "January"][index]} 1, 2026</time>
           <p class="record-summary">Verify project record ${index + 1} across each portfolio presentation.</p>
-          <p class="record-details">This project exists only in the automated browser response.</p>
+          <p class="record-details">${detailsOverrides[index] || "This project exists only in the automated browser response."}</p>
           <a href="test-project.html#project-${index + 1}">Open test project ${index + 1}</a>
         </article>`).join("");
     html = html.replace("<!-- automated-fixtures-insert -->", records);

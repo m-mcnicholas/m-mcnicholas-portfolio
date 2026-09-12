@@ -59,6 +59,27 @@ test("desktop WebGL composition exposes the book and every spine", async ({ page
   await page.screenshot({ path: "test-results/selected-project-1280x720.png" });
 });
 
+test("a long project description never overlaps the destination card", async ({ page }) => {
+  const longDetails = "This description is deliberately long enough to wrap across many lines on the book's right-hand page, the way real project details (like Cipher Twins') can, so it must never grow tall enough to visually run into the destination card below it. ".repeat(3);
+  await installProjectFixtures(page, 3, { 0: longDetails });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/webgl-ready/);
+  // Fixtures are appended after the 3 real records (info, Cipher Twins,
+  // Extra Projects), so the first fixture ("Test Project One") is spine 3.
+  await expect(page.locator(".spine-control")).toHaveCount(6);
+
+  await page.locator(".spine-control").nth(3).click();
+  await page.waitForTimeout(320);
+  await expect(page.locator("#selected-title")).toHaveText("Test Project One");
+  await expect(page.locator("#selected-link")).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    details: document.querySelector("#selected-details").getBoundingClientRect(),
+    link: document.querySelector("#selected-link").getBoundingClientRect()
+  }));
+  expect(layout.details.bottom).toBeLessThanOrEqual(layout.link.top + 1);
+});
+
 test("integrated-graphics safeguards avoid idle rendering", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("html")).toHaveClass(/webgl-ready/);

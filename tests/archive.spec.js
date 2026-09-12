@@ -29,6 +29,24 @@ test.describe("semantic archive", () => {
     await expect(page.locator(".project-record").last()).toBeVisible();
     await page.screenshot({ path: "test-results/archive-mobile-no-js.png", fullPage: true });
   });
+
+  test("fits narrow-desktop and tablet widths without horizontal overflow", async ({ page }) => {
+    // Below 1100px the desktop study scene never activates (see script.js's
+    // desktopQuery), so these widths always render the semantic archive. The
+    // archive's own mobile stacking only used to kick in at 760px, leaving a
+    // 761-1099px gap where .project-record's desktop grid floors (13rem +
+    // 9rem + 18rem, plus gaps/padding) overflowed the viewport.
+    for (const width of [800, 900, 1024, 1099]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+      const dimensions = await page.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth
+      }));
+      expect(dimensions.scrollWidth, `width ${width}`).toBe(dimensions.innerWidth);
+      await expect(page.locator(".project-record").last()).toBeVisible();
+    }
+  });
 });
 
 test("the JavaScript-enabled phone experience remains the complete archive", async ({ page }, testInfo) => {

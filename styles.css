@@ -238,6 +238,16 @@ a { color: inherit; }
   text-shadow: 0 0 0.35px #3c2b1e;
 }
 
+/* Clamped so the description can never grow tall enough to run into the
+   destination card that follows it in flow (long record-details text
+   otherwise pushed the card past the page's fixed, clipped height). */
+.selected-details {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
 .reading-book[data-page-layout="contents"] .selected-summary {
   white-space: pre-line;
   font-size: clamp(0.94rem, 1.22vw, 1.12rem);
@@ -249,12 +259,8 @@ a { color: inherit; }
 }
 
 .destination-card {
-  position: absolute;
-  z-index: 2;
-  right: clamp(24px, 2.6vw, 42px);
-  bottom: 115px;
-  left: clamp(30px, 3vw, 48px);
   display: block;
+  margin: 22px clamp(24px, 2.6vw, 42px) 0 clamp(30px, 3vw, 48px);
   padding: 9px 13px 18px;
   border: 3px double #794c3fc4;
   background: #8d66530b;
@@ -690,6 +696,43 @@ footer {
   color: #b8ad96;
   font-size: 0.76rem;
   text-align: center;
+}
+
+/* Between the mobile stack (below) and the desktop scene switch at 1099px
+   (see the .study/.archive media query above), .project-record's desktop
+   grid-template-columns floors (13rem + 9rem + 18rem, plus gaps and padding)
+   add up to more than the viewport, forcing horizontal overflow. Drop to a
+   stacked layout for this whole range instead of leaving a gap where only
+   phones get a working layout; the mobile block below layers its decorative
+   styling on top at narrower widths. */
+@media (max-width: 1099px) {
+  .project-record { display: block; }
+  .project-record > * + * { margin-top: 0.65rem; }
+  .project-record .record-type { margin-top: 0; }
+  .project-record > a {
+    display: inline-flex;
+    min-height: 48px;
+    margin-top: 1rem;
+    padding: 0.6rem 0;
+    white-space: normal;
+  }
+
+  .collection-record { min-height: 0; }
+  .collection-pages { display: block; margin-top: 1rem; }
+  .project-page {
+    display: block;
+    padding: 1rem 0;
+    border: 0;
+    border-top: 1px solid #b09a70;
+    background: transparent;
+  }
+  .project-page > * + * { margin-top: 0.65rem; }
+  .project-page > a {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    padding: 0.6rem 0;
+  }
 }
 
 @media (max-width: 760px) {
