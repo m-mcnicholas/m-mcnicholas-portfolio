@@ -4,6 +4,6 @@
 node_modules/
 dist/
 /.vite/
-/.claude/worktrees/
+/.claude/
 test-results/
 playwright-report/
