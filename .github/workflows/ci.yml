@@ -1,0 +1,60 @@
+name: CI
+
+# Full test suite, including the Playwright browser tests. This runs for
+# signal on pushes and pull requests but is deliberately NOT wired to the
+# GitHub Pages deployment, so a flaky browser install cannot block a release.
+# The L-System Forest smoke test renders WebGL through SwiftShader (software
+# rendering, configured in playwright.config.js) because runners have no GPU.
+# deploy-pages.yml gates deployment on the deterministic checks only.
+
+on:
+  push:
+    branches-ignore: []
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run logic tests
+        run: npm run test:logic
+
+      - name: Check repository and local links
+        run: npm run check
+
+      - name: Build site
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
